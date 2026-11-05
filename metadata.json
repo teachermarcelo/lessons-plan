@@ -1,0 +1,7 @@
+{
+  "name": "Fluent Immersion — English Teaching SaaS",
+  "description": "Professional English Lesson Planning & Teaching Resource Hub with CEFR A1-C2 curriculum, Business English, Kids English, HTML Studio, PDF exports, and AI Assistant.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
