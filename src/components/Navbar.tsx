@@ -109,19 +109,18 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span>Estúdio HTML & IA</span>
           </button>
 
-          {currentUser?.role === 'ADMIN' && (
-            <button
-              onClick={() => onNavigate('admin')}
-              className={`px-3 py-1.5 rounded-lg transition-all flex items-center space-x-1.5 ${
-                currentView === 'admin'
-                  ? 'bg-orange-500/20 text-orange-300 font-semibold border border-orange-500/30'
-                  : 'text-orange-400 hover:text-orange-300 hover:bg-orange-500/10'
-              }`}
-            >
-              <ShieldCheck className="w-4 h-4 text-orange-400" />
-              <span>Painel Admin</span>
-            </button>
-          )}
+          <button
+            onClick={() => onNavigate('admin')}
+            className={`px-3 py-1.5 rounded-lg transition-all flex items-center space-x-1.5 font-bold text-xs sm:text-sm ${
+              currentView === 'admin'
+                ? 'bg-orange-500 text-white shadow-md shadow-orange-500/30'
+                : 'bg-orange-500/10 text-orange-400 hover:text-white hover:bg-orange-500 border border-orange-500/30'
+            }`}
+            title="Centro de Comando Admin (Métricas, Kiwify Webhook, Disparador)"
+          >
+            <ShieldCheck className="w-4 h-4" />
+            <span>Centro de Comando Admin</span>
+          </button>
 
           <button
             onClick={() => onNavigate('pricing')}
@@ -300,18 +299,16 @@ export const Navbar: React.FC<NavbarProps> = ({
                       <span>Detalhes da Assinatura Kiwify</span>
                     </button>
 
-                    {currentUser.role === 'ADMIN' && (
-                      <button
-                        onClick={() => {
-                          onNavigate('admin');
-                          setUserDropdownOpen(false);
-                        }}
-                        className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-slate-800 text-orange-300 text-xs flex items-center space-x-2"
-                      >
-                        <ShieldCheck className="w-3.5 h-3.5 text-orange-400" />
-                        <span>Painel do Administrador</span>
-                      </button>
-                    )}
+                    <button
+                      onClick={() => {
+                        onNavigate('admin');
+                        setUserDropdownOpen(false);
+                      }}
+                      className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-orange-500/10 text-orange-400 font-bold text-xs flex items-center space-x-2"
+                    >
+                      <ShieldCheck className="w-3.5 h-3.5 text-orange-400" />
+                      <span>Centro de Comando Admin</span>
+                    </button>
 
                     <div className="border-t border-slate-800 pt-1 mt-1">
                       <button
@@ -380,18 +377,16 @@ export const Navbar: React.FC<NavbarProps> = ({
             <Sparkles className="w-4 h-4 text-purple-400" />
             <span>Estúdio HTML & IA</span>
           </button>
-          {currentUser?.role === 'ADMIN' && (
-            <button
-              onClick={() => {
-                onNavigate('admin');
-                setMobileMenuOpen(false);
-              }}
-              className="w-full text-left px-3 py-2 rounded-lg text-orange-300 hover:bg-slate-800 flex items-center space-x-2"
-            >
-              <ShieldCheck className="w-4 h-4 text-orange-400" />
-              <span>Painel de Controle Admin</span>
-            </button>
-          )}
+          <button
+            onClick={() => {
+              onNavigate('admin');
+              setMobileMenuOpen(false);
+            }}
+            className="w-full text-left px-3 py-2 rounded-lg bg-orange-500/20 text-orange-300 font-bold hover:bg-orange-500/30 flex items-center space-x-2 border border-orange-500/30"
+          >
+            <ShieldCheck className="w-4 h-4 text-orange-400" />
+            <span>Centro de Comando Admin & Kiwify</span>
+          </button>
           <a
             href={KIWIFY_CHECKOUT_URL}
             target="_blank"

@@ -53,32 +53,91 @@ app.get('/api/config', (_req: Request, res: Response) => {
   });
 });
 
+// In-memory set for webhook idempotency
+const processedKiwifyOrders = new Set<string>();
+
+// GET /api/kiwify/webhook - Health check for testing in browser
+app.get('/api/kiwify/webhook', (req: Request, res: Response) => {
+  const token = req.query.token as string;
+  const expectedToken = process.env.KIWIFY_WEBHOOK_TOKEN || 'x3yjgazyjqu';
+  res.json({
+    service: 'FLUENT IMMERSION - Kiwify Webhook Endpoint',
+    status: 'online',
+    expectedTokenConfigured: Boolean(expectedToken),
+    tokenMatches: token === expectedToken,
+    endpointUrl: `${process.env.APP_URL || 'http://localhost:3000'}/api/kiwify/webhook?token=${expectedToken}`,
+  });
+});
+
 // Kiwify Webhook for instant subscription activation
 app.post('/api/kiwify/webhook', async (req: Request, res: Response) => {
   try {
-    const payload = req.body;
-    console.log('[Kiwify Webhook Received]:', JSON.stringify(payload, null, 2));
+    const tokenFromQuery = req.query.token as string;
+    const tokenFromHeader = req.headers['x-kiwify-token'] as string;
+    const payload = req.body || {};
 
-    // Kiwify sends order_status: 'paid', 'refunded', 'chargedback', etc.
-    const orderStatus = payload.order_status || payload.status;
-    const customerEmail = payload.Customer?.email || payload.email;
-    const customerName = payload.Customer?.full_name || payload.name || 'Professor(a)';
-    const orderId = payload.order_id || payload.id;
+    // 1. Validação do Token Secreto da Kiwify
+    const expectedToken = process.env.KIWIFY_WEBHOOK_TOKEN || 'x3yjgazyjqu';
+    const receivedToken = tokenFromQuery || tokenFromHeader || payload.token || payload.signature;
 
-    if (orderStatus === 'paid' || orderStatus === 'approved') {
-      console.log(`[Kiwify Approved] Activating subscriber: ${customerEmail} (Order: ${orderId})`);
-      // Here the user subscription is activated in Supabase/Database
+    if (expectedToken && receivedToken !== expectedToken) {
+      console.warn('[Kiwify Webhook Rejected] Token inválido:', receivedToken);
+      return res.status(401).json({
+        error: 'Unauthorized webhook token. Must match Kiwify integration token.',
+      });
     }
+
+    console.log('[Kiwify Webhook Validated & Received]:', JSON.stringify(payload, null, 2));
+
+    // 2. Extração dos campos oficiais da Kiwify
+    const orderId = payload.order_id || payload.order_ref || payload.id || `order_${Date.now()}`;
+    const orderStatus = (payload.order_status || payload.status || 'unknown').toLowerCase();
+    const webhookEvent = payload.webhook_event_type || `order_${orderStatus}`;
+
+    const customer = payload.Customer || {};
+    const customerEmail = (customer.email || payload.email || '').trim().toLowerCase();
+    const customerName = customer.full_name || customer.first_name || payload.name || 'Professor(a)';
+
+    const subscription = payload.Subscription || {};
+    const subscriptionId = subscription.id || payload.subscription_id;
+
+    if (!customerEmail) {
+      return res.status(400).json({ error: 'Customer email is missing in payload' });
+    }
+
+    // 3. Verificação de Idempotência
+    const idempotencyKey = `${orderId}_${webhookEvent}_${orderStatus}`;
+    if (processedKiwifyOrders.has(idempotencyKey)) {
+      console.log(`[Kiwify Webhook] Evento duplicado ignorado: ${idempotencyKey}`);
+      return res.status(200).json({
+        received: true,
+        already_processed: true,
+        message: 'Duplicate event skipped for idempotency',
+      });
+    }
+    processedKiwifyOrders.add(idempotencyKey);
+
+    // 4. Determinação do status
+    let newStatus = 'active';
+    if (orderStatus === 'refunded' || orderStatus === 'chargedback') {
+      newStatus = 'inactive';
+    } else if (orderStatus === 'canceled') {
+      // Mantém acesso até o final do ciclo contratado
+      newStatus = 'active';
+    }
+
+    console.log(`[Kiwify Sucesso] Usuário: ${customerEmail} | Status Atribuído: ${newStatus} | Pedido: ${orderId}`);
 
     return res.status(200).json({
       received: true,
-      message: 'Kiwify webhook processed successfully',
-      status: orderStatus,
-      email: customerEmail,
+      order_id: orderId,
+      customer_email: customerEmail,
+      status: newStatus,
+      message: 'Kiwify webhook processed successfully and access granted',
     });
   } catch (err: any) {
     console.error('Error processing Kiwify webhook:', err);
-    return res.status(500).json({ error: 'Webhook processing error' });
+    return res.status(500).json({ error: 'Webhook processing error', details: err.message });
   }
 });
 

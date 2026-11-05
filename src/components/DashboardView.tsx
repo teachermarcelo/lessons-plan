@@ -238,15 +238,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <Plus className="w-3.5 h-3.5" />
             </button>
 
-            {currentUser.role === 'ADMIN' && (
-              <button
-                onClick={onOpenAdmin}
-                className="w-full text-left px-3 py-2 rounded-xl flex items-center space-x-2 text-orange-300 bg-orange-950/30 border border-orange-500/20 hover:bg-orange-900/40 transition-all font-semibold"
-              >
-                <ShieldCheck className="w-4 h-4 text-orange-400" />
-                <span>Painel do Administrador</span>
-              </button>
-            )}
+            <button
+              onClick={onOpenAdmin}
+              className="w-full text-left px-3 py-2 rounded-xl flex items-center space-x-2 text-orange-400 bg-orange-950/40 border border-orange-500/30 hover:bg-orange-900/50 transition-all font-bold text-xs"
+            >
+              <ShieldCheck className="w-4 h-4 text-orange-400" />
+              <span>Centro de Comando Admin</span>
+            </button>
           </nav>
         </div>
 

@@ -16,12 +16,24 @@ import {
   Layers,
   HelpCircle,
   Clock,
-  ArrowRight
+  ArrowRight,
+  Lock,
+  KeyRound,
+  ShieldCheck
 } from 'lucide-react';
-import { Lesson, CEFRLevelId, DepartmentType } from '../types/fluent';
+import { Lesson, CEFRLevelId, DepartmentType, UserProfile } from '../types/fluent';
 import { generateLessonPDF } from '../lib/pdfGenerator';
+import { 
+  MASTER_ADMIN_EMAIL, 
+  DEFAULT_ADMIN_PASSWORD, 
+  getStoredAdminPassword, 
+  setStoredAdminPassword,
+  DEFAULT_ADMIN_USER 
+} from '../lib/supabase';
 
 interface HtmlStudioProps {
+  currentUser: UserProfile | null;
+  onAdminLoginSuccess?: (adminUser: UserProfile) => void;
   initialLesson?: Lesson | null;
   onSaveLesson: (lesson: Lesson) => void;
   onPublishLesson: (lesson: Lesson) => void;
@@ -29,6 +41,8 @@ interface HtmlStudioProps {
 }
 
 export const HtmlStudio: React.FC<HtmlStudioProps> = ({
+  currentUser,
+  onAdminLoginSuccess,
   initialLesson,
   onSaveLesson,
   onPublishLesson,
@@ -40,6 +54,44 @@ export const HtmlStudio: React.FC<HtmlStudioProps> = ({
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const [savedNotice, setSavedNotice] = useState(false);
+
+  // Admin lock authentication state
+  const isMaster = currentUser?.email === MASTER_ADMIN_EMAIL || currentUser?.role === 'ADMIN';
+  const [adminEmailInput, setAdminEmailInput] = useState(MASTER_ADMIN_EMAIL);
+  const [adminPasswordInput, setAdminPasswordInput] = useState('');
+  const [adminAuthError, setAdminAuthError] = useState<string | null>(null);
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [newPasswordInput, setNewPasswordInput] = useState('');
+  const [resetSuccessMessage, setResetSuccessMessage] = useState<string | null>(null);
+
+  const handleAdminAuthSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const storedPass = getStoredAdminPassword();
+    if (adminEmailInput.trim().toLowerCase() === MASTER_ADMIN_EMAIL && adminPasswordInput === storedPass) {
+      if (onAdminLoginSuccess) {
+        onAdminLoginSuccess({
+          ...DEFAULT_ADMIN_USER,
+          email: MASTER_ADMIN_EMAIL,
+        });
+      }
+      setAdminAuthError(null);
+    } else {
+      setAdminAuthError('Credenciais inválidas. Verifique o e-mail ou a senha do Administrador.');
+    }
+  };
+
+  const handleResetPassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPasswordInput.length < 4) {
+      setAdminAuthError('A nova senha deve ter no mínimo 4 caracteres.');
+      return;
+    }
+    setStoredAdminPassword(newPasswordInput);
+    setResetSuccessMessage('Senha do Administrador atualizada com sucesso!');
+    setShowResetModal(false);
+    setAdminPasswordInput(newPasswordInput);
+  };
+
 
   // Lesson state
   const [lessonData, setLessonData] = useState<Lesson>(
@@ -149,7 +201,7 @@ export const HtmlStudio: React.FC<HtmlStudioProps> = ({
       }
 
       const generated = data.lesson;
-      setLessonData((prev) => ({
+      setLessonData((prev: Lesson) => ({
         ...prev,
         title: generated.title || prev.title,
         slug: (generated.title || 'lesson').toLowerCase().replace(/[^a-z0-9]+/g, '-'),
@@ -208,7 +260,7 @@ export const HtmlStudio: React.FC<HtmlStudioProps> = ({
   };
 
   const applyTemplate = (level: CEFRLevelId, dept: DepartmentType) => {
-    setLessonData((prev) => ({
+    setLessonData((prev: Lesson) => ({
       ...prev,
       cefr_level: level,
       department: dept,
@@ -216,6 +268,135 @@ export const HtmlStudio: React.FC<HtmlStudioProps> = ({
       slug: `${level.toLowerCase()}-${dept.toLowerCase().replace(/\s+/g, '-')}-modelo`,
     }));
   };
+
+  // BARREIRA DE ACESSO: ESTÚDIO EXCLUSIVO PARA O ADMIN (gestorpaid@gmail.com)
+  if (!isMaster) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center p-4">
+        <div className="w-full max-w-md bg-slate-900 border border-purple-500/30 rounded-3xl p-6 sm:p-8 shadow-2xl text-center space-y-6">
+          <div className="w-16 h-16 rounded-3xl bg-purple-600/20 text-purple-400 border border-purple-500/40 flex items-center justify-center mx-auto shadow-lg shadow-purple-600/25">
+            <Lock className="w-8 h-8" />
+          </div>
+
+          <div>
+            <span className="text-[10px] font-extrabold text-orange-400 uppercase tracking-widest block mb-1">
+              ÁREA RESTRITA AO MASTER ADMIN
+            </span>
+            <h2 className="text-2xl font-black text-white">Estúdio HTML & Criação</h2>
+            <p className="text-xs text-slate-300 mt-2 leading-relaxed">
+              O Estúdio HTML e o Construtor com IA são ferramentas restritas ao Administrador Master (<span className="text-purple-300 font-semibold">{MASTER_ADMIN_EMAIL}</span>).
+            </p>
+          </div>
+
+          {adminAuthError && (
+            <div className="p-3.5 rounded-xl bg-rose-950/40 border border-rose-500/30 text-xs text-rose-300">
+              {adminAuthError}
+            </div>
+          )}
+
+          {resetSuccessMessage && (
+            <div className="p-3.5 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-xs text-emerald-300">
+              {resetSuccessMessage}
+            </div>
+          )}
+
+          <form onSubmit={handleAdminAuthSubmit} className="space-y-4 text-xs text-left">
+            <div>
+              <label className="text-slate-400 block mb-1">E-mail do Administrador</label>
+              <input
+                type="email"
+                required
+                value={adminEmailInput}
+                onChange={(e) => setAdminEmailInput(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-purple-500 font-mono text-xs"
+              />
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-slate-400">Senha do Administrador</label>
+                <button
+                  type="button"
+                  onClick={() => setShowResetModal(true)}
+                  className="text-[11px] text-purple-400 hover:text-purple-300 underline"
+                >
+                  Redefinir senha internamente
+                </button>
+              </div>
+              <input
+                type="password"
+                required
+                placeholder="Digite a senha (padrão: 823638)"
+                value={adminPasswordInput}
+                onChange={(e) => setAdminPasswordInput(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-purple-500"
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black text-xs shadow-lg shadow-purple-600/30 flex items-center justify-center space-x-2 transition-all active:scale-95"
+            >
+              <KeyRound className="w-4 h-4" />
+              <span>Desbloquear Estúdio HTML</span>
+            </button>
+          </form>
+
+          <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-xs">
+            <button
+              onClick={onBackToDashboard}
+              className="text-slate-400 hover:text-white"
+            >
+              ← Voltar para a Biblioteca
+            </button>
+            <span className="text-[11px] text-slate-500">
+              Admin: gestorpaid@gmail.com
+            </span>
+          </div>
+        </div>
+
+        {/* Modal interno para redefinir senha */}
+        {showResetModal && (
+          <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+            <div className="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-2xl p-6 text-left space-y-4">
+              <h3 className="font-bold text-base text-white">Redefinir Senha do Admin</h3>
+              <p className="text-xs text-slate-400">
+                Altere a senha de acesso ao Estúdio para o e-mail gestorpaid@gmail.com:
+              </p>
+              <form onSubmit={handleResetPassword} className="space-y-3 text-xs">
+                <div>
+                  <label className="text-slate-300 block mb-1">Nova Senha</label>
+                  <input
+                    type="password"
+                    required
+                    placeholder="Mínimo 4 caracteres"
+                    value={newPasswordInput}
+                    onChange={(e) => setNewPasswordInput(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none"
+                  />
+                </div>
+                <div className="flex items-center justify-end space-x-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowResetModal(false)}
+                    className="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-bold"
+                  >
+                    Salvar Nova Senha
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 text-white flex flex-col">

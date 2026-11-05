@@ -15,19 +15,29 @@ export const isSupabaseConfigured = Boolean(
 export const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKey);
 
 export const KIWIFY_CHECKOUT_URL = 'https://pay.kiwify.com.br/kUSvFoZ';
+export const MASTER_ADMIN_EMAIL = 'gestorpaid@gmail.com';
+export const DEFAULT_ADMIN_PASSWORD = '823638';
+
+export const getStoredAdminPassword = (): string => {
+  return localStorage.getItem('fluent_admin_password') || DEFAULT_ADMIN_PASSWORD;
+};
+
+export const setStoredAdminPassword = (newPass: string) => {
+  localStorage.setItem('fluent_admin_password', newPass);
+};
 
 // Initial demo users for instant role switching
 export const DEFAULT_ADMIN_USER: UserProfile = {
-  id: 'usr-admin-001',
-  email: 'admin@fluentimmersion.com',
-  full_name: 'Prof. Marcus Vance (Admin)',
+  id: 'usr-admin-gestor',
+  email: 'gestorpaid@gmail.com',
+  full_name: 'Administrador Master (Gestor)',
   role: 'ADMIN',
   avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
   country: 'Brasil',
   preferred_language: 'pt-BR',
-  teaching_context: 'Diretor Pedagógico & Designer Instrucional',
+  teaching_context: 'Diretoria Executiva FLUENT IMMERSION',
   subscription_status: 'active',
-  created_at: '2026-01-15T00:00:00Z',
+  created_at: '2026-01-01T00:00:00Z',
   last_login_at: new Date().toISOString(),
 };
 

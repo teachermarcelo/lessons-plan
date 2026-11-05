@@ -30,6 +30,7 @@ interface LandingPageProps {
   onSelectLesson: (lesson: Lesson) => void;
   sampleLessons: Lesson[];
   onOpenStudio: () => void;
+  onOpenAdmin?: () => void;
   onOpenLegal: (type: 'terms' | 'privacy') => void;
 }
 
@@ -38,6 +39,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   onSelectLesson,
   sampleLessons,
   onOpenStudio,
+  onOpenAdmin,
   onOpenLegal,
 }) => {
   const [activeTab, setActiveTab] = useState<'teacher' | 'student' | 'flashcards' | 'quiz'>('teacher');
@@ -687,6 +689,17 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   <ExternalLink className="w-3 h-3" />
                 </a>
               </li>
+              {onOpenAdmin && (
+                <li>
+                  <button 
+                    onClick={onOpenAdmin} 
+                    className="text-orange-400 hover:text-orange-300 font-bold transition-colors flex items-center space-x-1"
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    <span>Centro de Comando Admin & Kiwify</span>
+                  </button>
+                </li>
+              )}
               <li className="text-slate-500">Suporte: contato@fluentimmersion.com</li>
             </ul>
           </div>

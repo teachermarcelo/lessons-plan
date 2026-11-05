@@ -239,6 +239,7 @@ export default function App() {
             onSelectLesson={(lesson) => setSelectedLesson(lesson)}
             sampleLessons={lessons}
             onOpenStudio={() => handleOpenStudio()}
+            onOpenAdmin={() => setCurrentView('admin')}
             onOpenLegal={(type) => setLegalModalType(type)}
           />
         )}
@@ -261,6 +262,8 @@ export default function App() {
 
         {currentView === 'html-studio' && (
           <HtmlStudio
+            currentUser={currentUser}
+            onAdminLoginSuccess={(adminUser) => setCurrentUser(adminUser)}
             initialLesson={editingLessonInStudio}
             onSaveLesson={handleSaveLessonFromStudio}
             onPublishLesson={handlePublishLessonFromStudio}
