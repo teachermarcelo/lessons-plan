@@ -104,6 +104,7 @@ export interface Lesson {
   summary: string;
   cover_image_url?: string;
   is_published: boolean;
+  is_free?: boolean;
   published_at: string;
   view_count: number;
   download_count: number;

@@ -549,6 +549,7 @@ export const INITIAL_LESSONS: Lesson[] = [
     summary: 'The ultimate zero-to-hero first lesson for beginners. Builds confidence immediately with clear sentence frames, pronunciation drills for contractions, and an icebreaker bingo.',
     cover_image_url: 'https://images.unsplash.com/photo-1543269865-cbf427effbad?auto=format&fit=crop&w=800&q=80',
     is_published: true,
+    is_free: true,
     published_at: '2026-11-04T08:00:00Z',
     view_count: 820,
     download_count: 590,

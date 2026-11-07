@@ -161,6 +161,12 @@ export default function App() {
     );
   };
 
+  const handleToggleFree = (lessonId: string) => {
+    setLessons(
+      lessons.map((l) => (l.id === lessonId ? { ...l, is_free: !l.is_free } : l))
+    );
+  };
+
   const handleSendBroadcastNotification = async (payload: {
     resourceTitle: string;
     cefrLevel: string;
@@ -319,6 +325,7 @@ export default function App() {
             lessons={lessons}
             emailLogs={emailLogs}
             onTogglePublish={handleTogglePublish}
+            onToggleFree={handleToggleFree}
             onDeleteLesson={handleDeleteLesson}
             onSaveLessonFromStudio={handleSaveLessonFromStudio}
             onPublishLessonFromStudio={handlePublishLessonFromStudio}

@@ -30,7 +30,8 @@ import {
   MessageSquare,
   Phone,
   Smartphone,
-  MousePointerClick
+  MousePointerClick,
+  Star
 } from 'lucide-react';
 import { Lesson, UserProfile, EmailLog, CheckoutLead } from '../types/fluent';
 import { 
@@ -54,6 +55,7 @@ interface AdminCommandCenterProps {
   lessons: Lesson[];
   emailLogs: EmailLog[];
   onTogglePublish: (lessonId: string) => void;
+  onToggleFree?: (lessonId: string) => void;
   onDeleteLesson: (lessonId: string) => void;
   onSaveLessonFromStudio: (lesson: Lesson) => void;
   onPublishLessonFromStudio: (lesson: Lesson) => void;
@@ -72,6 +74,7 @@ export const AdminCommandCenter: React.FC<AdminCommandCenterProps> = ({
   lessons,
   emailLogs,
   onTogglePublish,
+  onToggleFree,
   onDeleteLesson,
   onSaveLessonFromStudio,
   onPublishLessonFromStudio,
@@ -81,6 +84,7 @@ export const AdminCommandCenter: React.FC<AdminCommandCenterProps> = ({
   const [activeTab, setActiveTab] = useState<'flow' | 'metrics' | 'leads' | 'studio' | 'content' | 'users' | 'emails' | 'kiwify' | 'security'>('flow');
   const [copiedWebhook, setCopiedWebhook] = useState(false);
   const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
+  const [contentFilter, setContentFilter] = useState<'all' | 'published' | 'hidden' | 'free'>('all');
 
   // Rastreamento de Leads & Cliques no Checkout Kiwify
   const [checkoutLeads, setCheckoutLeads] = useState<CheckoutLead[]>(() => getStoredCheckoutLeads());
@@ -1342,63 +1346,170 @@ export const AdminCommandCenter: React.FC<AdminCommandCenterProps> = ({
 
         {/* ABA 3: BIBLIOTECA DE CONTEÚDO */}
         {activeTab === 'content' && (
-          <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 space-y-4">
-            <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
-              <h3 className="text-lg font-black text-white">Todos os Planos de Aula (A1 a C2, Business e Kids)</h3>
+          <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 space-y-5">
+            <div className="flex items-center justify-between flex-wrap gap-3 pb-2 border-b border-slate-800">
+              <div>
+                <h3 className="text-lg font-black text-white">Todos os Planos de Aula (A1 a C2, Business e Kids)</h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Gerencie visibilidade e acesso: marque como <strong>Publicada</strong>, <strong>Ocultada</strong> ou <strong>Gratuita (Demo)</strong> com 1 clique.
+                </p>
+              </div>
+
               <button
                 onClick={() => {
                   setEditingLesson(null);
                   setActiveTab('studio');
                 }}
-                className="px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold flex items-center space-x-1"
+                className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 active:scale-95 text-white text-xs font-bold flex items-center space-x-1.5 shadow-md shadow-purple-600/30 transition-all"
               >
-                <Plus className="w-3.5 h-3.5" />
+                <Plus className="w-4 h-4" />
                 <span>Criar Nova Lição no Estúdio</span>
               </button>
             </div>
 
+            {/* Filtros Rápidos de Status */}
+            <div className="flex items-center space-x-2 text-xs font-bold overflow-x-auto pb-1 no-scrollbar">
+              <button
+                onClick={() => setContentFilter('all')}
+                className={`px-3 py-1.5 rounded-xl transition-all ${
+                  contentFilter === 'all'
+                    ? 'bg-purple-600 text-white shadow-md'
+                    : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
+                }`}
+              >
+                Todas ({lessons.length})
+              </button>
+              <button
+                onClick={() => setContentFilter('published')}
+                className={`px-3 py-1.5 rounded-xl transition-all flex items-center space-x-1.5 ${
+                  contentFilter === 'published'
+                    ? 'bg-emerald-600 text-white shadow-md'
+                    : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
+                }`}
+              >
+                <Check className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Publicadas ({lessons.filter((l) => l.is_published).length})</span>
+              </button>
+              <button
+                onClick={() => setContentFilter('hidden')}
+                className={`px-3 py-1.5 rounded-xl transition-all flex items-center space-x-1.5 ${
+                  contentFilter === 'hidden'
+                    ? 'bg-slate-700 text-white shadow-md'
+                    : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
+                }`}
+              >
+                <EyeOff className="w-3.5 h-3.5 text-slate-400" />
+                <span>Ocultadas ({lessons.filter((l) => !l.is_published).length})</span>
+              </button>
+              <button
+                onClick={() => setContentFilter('free')}
+                className={`px-3 py-1.5 rounded-xl transition-all flex items-center space-x-1.5 ${
+                  contentFilter === 'free'
+                    ? 'bg-amber-600 text-white shadow-md'
+                    : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
+                }`}
+              >
+                <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                <span>Gratuitas Demo ({lessons.filter((l) => l.is_free).length})</span>
+              </button>
+            </div>
+
+            {/* Lista de Aulas */}
             <div className="divide-y divide-slate-800">
-              {lessons.map((lesson) => (
-                <div key={lesson.id} className="py-4 flex items-center justify-between flex-wrap gap-3">
-                  <div className="flex items-center space-x-3">
-                    <span className="text-xs font-bold px-2.5 py-1 rounded-md bg-purple-600/20 text-purple-300">
-                      {lesson.cefr_level}
-                    </span>
-                    <div>
-                      <h4 className="font-bold text-sm text-white">{lesson.title}</h4>
-                      <p className="text-xs text-slate-400">{lesson.department} • {lesson.duration_minutes} min</p>
+              {lessons
+                .filter((l) => {
+                  if (contentFilter === 'published') return l.is_published;
+                  if (contentFilter === 'hidden') return !l.is_published;
+                  if (contentFilter === 'free') return l.is_free;
+                  return true;
+                })
+                .map((lesson) => (
+                  <div key={lesson.id} className="py-4 flex items-center justify-between flex-wrap gap-3 hover:bg-slate-800/30 px-3 rounded-2xl transition-colors">
+                    <div className="flex items-center space-x-3.5 min-w-[280px]">
+                      <span className="text-xs font-black px-2.5 py-1 rounded-xl bg-purple-600/20 text-purple-300 border border-purple-500/30">
+                        {lesson.cefr_level}
+                      </span>
+                      <div>
+                        <h4 className="font-bold text-sm text-white flex items-center space-x-2">
+                          <span>{lesson.title}</span>
+                          {lesson.is_free && (
+                            <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 inline-flex items-center space-x-1">
+                              <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
+                              <span>Demo Livre</span>
+                            </span>
+                          )}
+                          {!lesson.is_published && (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700 inline-flex items-center space-x-1">
+                              <EyeOff className="w-2.5 h-2.5" />
+                              <span>Oculta</span>
+                            </span>
+                          )}
+                        </h4>
+                        <p className="text-xs text-slate-400 mt-0.5">
+                          {lesson.department} • {lesson.duration_minutes} min • {lesson.view_count || 0} visualizações
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-2.5 flex-wrap gap-2">
+                      {/* 1. Botão: Publicar vs Ocultar */}
+                      <button
+                        onClick={() => onTogglePublish(lesson.id)}
+                        className={`text-xs px-3 py-1.5 rounded-xl font-bold flex items-center space-x-1.5 transition-all cursor-pointer ${
+                          lesson.is_published
+                            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30 shadow-sm'
+                            : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700 hover:text-white'
+                        }`}
+                        title={lesson.is_published ? "Aula publicada e visível na biblioteca. Clique para ocultar." : "Aula oculta. Clique para publicar na biblioteca."}
+                      >
+                        {lesson.is_published ? <Check className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                        <span>{lesson.is_published ? 'Publicada' : 'Ocultada'}</span>
+                      </button>
+
+                      {/* 2. Botão: Deixar Gratuita vs Exclusiva Membro */}
+                      <button
+                        onClick={() => onToggleFree?.(lesson.id)}
+                        className={`text-xs px-3 py-1.5 rounded-xl font-bold flex items-center space-x-1.5 transition-all cursor-pointer ${
+                          lesson.is_free
+                            ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 shadow-sm'
+                            : 'bg-purple-950/60 text-purple-300 border border-purple-500/30 hover:bg-purple-900/40'
+                        }`}
+                        title={lesson.is_free ? "Aula gratuita livre para visitantes sem assinatura. Clique para tornar exclusiva para membros." : "Exclusiva para assinantes Kiwify. Clique para deixar gratuita (demo)."}
+                      >
+                        {lesson.is_free ? (
+                          <>
+                            <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                            <span>Gratuita (Demo)</span>
+                          </>
+                        ) : (
+                          <>
+                            <Lock className="w-3.5 h-3.5 text-purple-400" />
+                            <span>Exclusiva Membros</span>
+                          </>
+                        )}
+                      </button>
+
+                      {/* 3. Ações: Editar e Excluir */}
+                      <button
+                        onClick={() => {
+                          setEditingLesson(lesson);
+                          setActiveTab('studio');
+                        }}
+                        className="p-2 rounded-xl bg-slate-800 hover:bg-purple-600 hover:text-white text-slate-300 transition-colors"
+                        title="Editar no Estúdio"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => onDeleteLesson(lesson.id)}
+                        className="p-2 rounded-xl bg-slate-800 hover:bg-rose-900/60 text-slate-300 hover:text-rose-400 transition-colors"
+                        title="Excluir aula"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </div>
-
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => onTogglePublish(lesson.id)}
-                      className={`text-xs px-3 py-1 rounded-lg font-bold ${
-                        lesson.is_published ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'
-                      }`}
-                    >
-                      {lesson.is_published ? 'Publicado' : 'Rascunho'}
-                    </button>
-                    <button
-                      onClick={() => {
-                        setEditingLesson(lesson);
-                        setActiveTab('studio');
-                      }}
-                      className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300"
-                      title="Editar no Estúdio"
-                    >
-                      <Edit3 className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={() => onDeleteLesson(lesson.id)}
-                      className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-900/40 text-slate-300 hover:text-rose-400"
-                      title="Excluir"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-              ))}
+                ))}
             </div>
           </div>
         )}

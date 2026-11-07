@@ -60,6 +60,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   // Filter lessons based on search, department, level, and sidebar tab
   const filteredLessons = useMemo(() => {
     return lessons.filter((lesson) => {
+      // Se a aula estiver oculta/despublicada, só é exibida para o Administrador
+      if (currentUser.role !== 'ADMIN' && lesson.is_published === false) {
+        return false;
+      }
+
       // Sidebar filter
       if (activeSidebar === 'favorites') {
         if (!favorites.includes(lesson.id)) return false;
@@ -459,7 +464,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 lesson={lesson}
                 isFavorite={favorites.includes(lesson.id)}
                 isSubscribed={isSubscribed}
-                isFreeSample={lesson.id === FREE_SAMPLE_LESSON_ID}
+                isFreeSample={lesson.is_free === true || lesson.id === FREE_SAMPLE_LESSON_ID}
                 onToggleFavorite={onToggleFavorite}
                 onOpenLesson={handleCardClick}
                 onQuickDownloadPDF={handleDownloadPDFClick}

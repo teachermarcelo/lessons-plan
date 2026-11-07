@@ -71,6 +71,12 @@ export const LessonCard: React.FC<LessonCardProps> = ({
               {lesson.department}
             </span>
           )}
+
+          {!lesson.is_published && (
+            <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-600 backdrop-blur-md shadow-sm">
+              ✕ OCULTA
+            </span>
+          )}
         </div>
 
         {/* Botão Favoritar */}

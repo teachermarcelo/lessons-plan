@@ -29,7 +29,8 @@ import {
   FileUp,
   Upload,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Star
 } from 'lucide-react';
 import { InteractiveHtmlViewer } from './InteractiveHtmlViewer';
 import { Lesson, CEFRLevelId, DepartmentType, UserProfile } from '../types/fluent';
@@ -855,6 +856,84 @@ export const HtmlStudio: React.FC<HtmlStudioProps> = ({
                     onChange={(e) => setLessonData({ ...lessonData, language_focus: e.target.value })}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-purple-500"
                   />
+                </div>
+
+                {/* STATUS DE PUBLICAÇÃO & ACESSO (DEIXAR GRATUITA, OCULTAR, PUBLICAR) */}
+                <div className="pt-3 border-t border-slate-800 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-black text-amber-400 uppercase tracking-wider">
+                      Status & Regra de Acesso
+                    </span>
+                    <span className="text-[10px] text-slate-500">Controle de visualização</span>
+                  </div>
+
+                  {/* 1. Publicar na Biblioteca vs Ocultar (Rascunho) */}
+                  <div>
+                    <label className="text-[10px] text-slate-400 font-bold block mb-1.5 uppercase">
+                      1. Visibilidade na Plataforma
+                    </label>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <button
+                        type="button"
+                        onClick={() => setLessonData({ ...lessonData, is_published: true })}
+                        className={`p-2.5 rounded-xl border flex items-center justify-center space-x-1.5 font-bold transition-all cursor-pointer ${
+                          lessonData.is_published
+                            ? 'bg-emerald-600 text-white border-emerald-500 shadow-md shadow-emerald-600/30'
+                            : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-white'
+                        }`}
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                        <span>Publicar</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setLessonData({ ...lessonData, is_published: false })}
+                        className={`p-2.5 rounded-xl border flex items-center justify-center space-x-1.5 font-bold transition-all cursor-pointer ${
+                          !lessonData.is_published
+                            ? 'bg-slate-800 text-white border-slate-600 shadow-md'
+                            : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-white'
+                        }`}
+                      >
+                        <EyeOff className="w-3.5 h-3.5" />
+                        <span>Ocultar</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 2. Deixar Gratuita vs Exclusiva para Assinantes Kiwify */}
+                  <div>
+                    <label className="text-[10px] text-slate-400 font-bold block mb-1.5 uppercase">
+                      2. Cobrança de Assinatura
+                    </label>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <button
+                        type="button"
+                        onClick={() => setLessonData({ ...lessonData, is_free: true })}
+                        className={`p-2.5 rounded-xl border flex items-center justify-center space-x-1.5 font-bold transition-all cursor-pointer ${
+                          lessonData.is_free
+                            ? 'bg-amber-600 text-white border-amber-500 shadow-md shadow-amber-600/30'
+                            : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-white'
+                        }`}
+                      >
+                        <Star className="w-3.5 h-3.5 fill-current" />
+                        <span>Deixar Gratuita</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setLessonData({ ...lessonData, is_free: false })}
+                        className={`p-2.5 rounded-xl border flex items-center justify-center space-x-1.5 font-bold transition-all cursor-pointer ${
+                          !lessonData.is_free
+                            ? 'bg-purple-600 text-white border-purple-500 shadow-md shadow-purple-600/30'
+                            : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-white'
+                        }`}
+                      >
+                        <Lock className="w-3.5 h-3.5" />
+                        <span>Exclusiva Membros</span>
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
 

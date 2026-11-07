@@ -98,6 +98,24 @@ export const TeacherLessonViewerPage: React.FC<TeacherLessonViewerPageProps> = (
   const [speechActiveText, setSpeechActiveText] = useState<string | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const pdfMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (pdfMenuOpen && pdfMenuRef.current && !pdfMenuRef.current.contains(e.target as Node)) {
+        setPdfMenuOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setPdfMenuOpen(false);
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [pdfMenuOpen]);
 
   // 7ESL / Ellii Curricular Steps definition (Dinâmico e 100% opcional)
   const allSteps: StepItem[] = [
@@ -361,7 +379,7 @@ export const TeacherLessonViewerPage: React.FC<TeacherLessonViewerPageProps> = (
             </button>
 
             {/* Exportar PDF Dropdown */}
-            <div className="relative">
+            <div ref={pdfMenuRef} className="relative">
               <button
                 onClick={() => setPdfMenuOpen(!pdfMenuOpen)}
                 className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold flex items-center space-x-1.5 shadow-md shadow-purple-600/30 transition-all"

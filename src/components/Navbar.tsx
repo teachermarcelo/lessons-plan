@@ -48,6 +48,35 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [userDropdownOpen, setUserDropdownOpen] = React.useState(false);
   const [roleSwitcherOpen, setRoleSwitcherOpen] = React.useState(false);
 
+  const roleDropdownRef = React.useRef<HTMLDivElement>(null);
+  const userDropdownRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (roleSwitcherOpen && roleDropdownRef.current && !roleDropdownRef.current.contains(e.target as Node)) {
+        setRoleSwitcherOpen(false);
+      }
+      if (userDropdownOpen && userDropdownRef.current && !userDropdownRef.current.contains(e.target as Node)) {
+        setUserDropdownOpen(false);
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setRoleSwitcherOpen(false);
+        setUserDropdownOpen(false);
+        setMobileMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [roleSwitcherOpen, userDropdownOpen]);
+
   const unreadCount = notifications.filter((n) => !n.is_read).length;
   const isSubscribed = currentUser?.subscription_status === 'active' || currentUser?.role === 'ADMIN';
 
@@ -120,7 +149,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* Right Action Items */}
         <div className="flex items-center space-x-2 sm:space-x-3">
           {/* Seletor Rápido de Perfil para Teste (Admin, Teacher Membro, Visitante) */}
-          <div className="relative">
+          <div ref={roleDropdownRef} className="relative">
             <button
               onClick={() => setRoleSwitcherOpen(!roleSwitcherOpen)}
               className="hidden lg:flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-purple-500/50 transition-all"
@@ -245,7 +274,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Menu do Usuário */}
           {currentUser ? (
-            <div className="relative">
+            <div ref={userDropdownRef} className="relative">
               <button
                 onClick={() => setUserDropdownOpen(!userDropdownOpen)}
                 className="flex items-center space-x-2 p-1 rounded-full border border-slate-300 dark:border-slate-700 hover:border-purple-500 transition-all"
