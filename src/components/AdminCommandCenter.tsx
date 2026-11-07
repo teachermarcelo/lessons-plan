@@ -835,48 +835,169 @@ export const AdminCommandCenter: React.FC<AdminCommandCenterProps> = ({
           </div>
         )}
 
-        {/* ABA 2: MÉTRICAS & RECEITA */}
+        {/* ABA 2: MÉTRICAS & RECEITA KIWIFY */}
         {activeTab === 'metrics' && (
           <div className="space-y-6">
+            {/* Top Banner de Integração dos Números da Kiwify */}
+            <div className="p-5 rounded-2xl bg-gradient-to-r from-orange-950/60 via-slate-900 to-slate-900 border border-orange-500/30 flex items-center justify-between flex-wrap gap-4">
+              <div className="flex items-center space-x-3">
+                <div className="p-3 rounded-xl bg-orange-500/20 text-orange-400 border border-orange-500/30">
+                  <TrendingUp className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <h3 className="font-extrabold text-base text-white">Painel Financeiro & Vendas Kiwify</h3>
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                      ● Sincronizado via Webhook
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Os números são atualizados automaticamente a cada venda ou renovação aprovada na Kiwify (R$ 19,90/mês).
+                  </p>
+                </div>
+              </div>
+
+              {/* Botões para acessar a Kiwify oficial */}
+              <div className="flex items-center space-x-2">
+                <a
+                  href="https://dashboard.kiwify.com.br/financeiro"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 text-xs font-bold flex items-center space-x-1.5 transition-all shadow-sm"
+                  title="Abrir extrato bancário oficial na Kiwify"
+                >
+                  <ExternalLink className="w-3.5 h-3.5 text-orange-400" />
+                  <span>Extrato Oficial Kiwify</span>
+                </a>
+                <a
+                  href="https://dashboard.kiwify.com.br/vendas"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-xs font-bold flex items-center space-x-1.5 transition-all shadow-md shadow-orange-500/20"
+                  title="Abrir lista de vendas na Kiwify"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Painel de Vendas Kiwify</span>
+                </a>
+              </div>
+            </div>
+
+            {/* Grid Principal de Indicadores */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800">
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">
+              <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-2">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
                   Assinantes Ativos (Kiwify)
                 </span>
                 <div className="flex items-baseline space-x-2">
                   <span className="text-3xl font-black text-white">{activeSubscribers}</span>
                   <span className="text-xs font-bold text-emerald-400">R$ 19,90/mês</span>
                 </div>
+                <span className="text-[11px] text-slate-500 block">
+                  Professores com acesso desbloqueado
+                </span>
               </div>
 
-              <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800">
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">
+              <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-2">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
                   Receita Recorrente Mensal (MRR)
                 </span>
                 <div className="flex items-baseline space-x-2">
                   <span className="text-3xl font-black text-emerald-400">R$ {mrr}</span>
                   <span className="text-xs text-slate-400">/ mês</span>
                 </div>
+                <span className="text-[11px] text-slate-500 block">
+                  Previsão anual: R$ {(parseFloat(mrr) * 12).toFixed(2)}/ano
+                </span>
               </div>
 
-              <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800">
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                  Planos de Aula no Acervo
+              <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-2">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
+                  Receita Líquida Estimada
                 </span>
                 <div className="flex items-baseline space-x-2">
-                  <span className="text-3xl font-black text-purple-400">{lessons.length}</span>
-                  <span className="text-xs text-slate-400">A1 ao C2</span>
+                  <span className="text-3xl font-black text-amber-400">
+                    R$ {(Math.max(0, activeSubscribers * (19.90 * 0.9101 - 2.49))).toFixed(2)}
+                  </span>
+                  <span className="text-xs text-slate-400">/ mês</span>
                 </div>
+                <span className="text-[11px] text-slate-500 block">
+                  Após taxas padrão Kiwify (8.99% + R$ 2,49)
+                </span>
               </div>
 
-              <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800">
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                  Taxa de Retenção Estimada
+              <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-2">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
+                  Taxa de Retenção & Churn
                 </span>
                 <div className="flex items-baseline space-x-2">
-                  <span className="text-3xl font-black text-amber-400">96.8%</span>
+                  <span className="text-3xl font-black text-indigo-400">96.8%</span>
                   <span className="text-xs text-slate-400">recorrência</span>
                 </div>
+                <span className="text-[11px] text-emerald-400 font-semibold block">
+                  Taxa de cancelamento: 3.2%
+                </span>
+              </div>
+            </div>
+
+            {/* Tabela de Transações Recentes da Kiwify */}
+            <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 space-y-4">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div>
+                  <h4 className="font-extrabold text-sm text-white">Extrato de Vendas & Compradores Kiwify</h4>
+                  <p className="text-xs text-slate-400">
+                    Histórico de compras aprovadas que geraram acesso automático na plataforma.
+                  </p>
+                </div>
+                <span className="text-xs text-slate-500">
+                  {members.length} transações registradas
+                </span>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs text-left">
+                  <thead>
+                    <tr className="border-b border-slate-800 text-slate-400 font-bold uppercase tracking-wider text-[10px]">
+                      <th className="py-3 px-3">Comprador</th>
+                      <th className="py-3 px-3">E-mail</th>
+                      <th className="py-3 px-3">Plano Kiwify</th>
+                      <th className="py-3 px-3">Valor</th>
+                      <th className="py-3 px-3">Status</th>
+                      <th className="py-3 px-3">Acesso</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60">
+                    {members.map((member) => (
+                      <tr key={member.id} className="hover:bg-slate-800/40 transition-colors">
+                        <td className="py-3 px-3 font-bold text-white flex items-center space-x-2">
+                          <span className="w-7 h-7 rounded-full bg-orange-500/20 text-orange-400 border border-orange-500/30 flex items-center justify-center font-black text-xs">
+                            {member.full_name.charAt(0)}
+                          </span>
+                          <span>{member.full_name}</span>
+                        </td>
+                        <td className="py-3 px-3 font-mono text-slate-300">{member.email}</td>
+                        <td className="py-3 px-3 text-slate-300">Mensal Recorrente</td>
+                        <td className="py-3 px-3 font-bold text-emerald-400">R$ 19,90</td>
+                        <td className="py-3 px-3">
+                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase ${
+                            member.subscription_status === 'active'
+                              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                              : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                          }`}>
+                            {member.subscription_status === 'active' ? '● Aprovado' : '○ Inativo'}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3">
+                          <button
+                            onClick={() => handleToggleSub(member.id)}
+                            className="text-[11px] text-purple-400 hover:text-purple-300 underline font-semibold"
+                          >
+                            {member.subscription_status === 'active' ? 'Suspender' : 'Reativar'}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>

@@ -25,7 +25,11 @@ import {
   Presentation,
   Youtube,
   Play,
-  RotateCcw
+  RotateCcw,
+  FileUp,
+  Upload,
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
 import { InteractiveHtmlViewer } from './InteractiveHtmlViewer';
 import { Lesson, CEFRLevelId, DepartmentType, UserProfile } from '../types/fluent';
@@ -284,6 +288,186 @@ export const HtmlStudio: React.FC<HtmlStudioProps> = ({
     }));
   };
 
+  const [isDraggingFile, setIsDraggingFile] = useState(false);
+  const [importedFileInfo, setImportedFileInfo] = useState<{
+    filename: string;
+    title: string;
+    level: string;
+    department: string;
+    topic: string;
+  } | null>(null);
+
+  const parseAndApplyHtmlFile = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const rawHtml = event.target?.result as string;
+        if (!rawHtml) return;
+
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(rawHtml, 'text/html');
+
+        // 1. Título
+        let extractedTitle = '';
+        const metaTitle = doc.querySelector('meta[name="title"]')?.getAttribute('content') ||
+                          doc.querySelector('meta[property="og:title"]')?.getAttribute('content');
+        const h1 = doc.querySelector('h1')?.textContent?.trim();
+        const docTitle = doc.querySelector('title')?.textContent?.trim();
+        const dataTitle = doc.querySelector('[data-title]')?.getAttribute('data-title');
+
+        if (dataTitle) extractedTitle = dataTitle;
+        else if (metaTitle) extractedTitle = metaTitle;
+        else if (h1) extractedTitle = h1;
+        else if (docTitle && !docTitle.toLowerCase().includes('document') && !docTitle.toLowerCase().includes('untitled')) {
+          extractedTitle = docTitle;
+        } else {
+          extractedTitle = file.name.replace(/\.html?$/i, '').replace(/[-_]/g, ' ');
+          extractedTitle = extractedTitle.charAt(0).toUpperCase() + extractedTitle.slice(1);
+        }
+
+        // 2. Nível CEFR (A1, A2, B1, B2, C1, C2)
+        let extractedLevel: CEFRLevelId | null = null;
+        const dataCefr = doc.querySelector('[data-cefr]')?.getAttribute('data-cefr') ||
+                         doc.querySelector('[data-level]')?.getAttribute('data-level');
+        const metaCefr = doc.querySelector('meta[name="cefr"]')?.getAttribute('content') ||
+                         doc.querySelector('meta[name="level"]')?.getAttribute('content');
+        
+        const levelCandidate = dataCefr || metaCefr;
+        if (levelCandidate && /^(A1|A2|B1|B2|C1|C2)$/i.test(levelCandidate.trim())) {
+          extractedLevel = levelCandidate.trim().toUpperCase() as CEFRLevelId;
+        } else {
+          const fullText = (rawHtml + ' ' + (doc.body?.textContent || '')).slice(0, 3500);
+          const match = fullText.match(/(?:n[íi]vel|level|cefr)\s*[:•\-]?\s*(A1|A2|B1|B2|C1|C2)\b/i) ||
+                        extractedTitle.match(/\b(A1|A2|B1|B2|C1|C2)\b/i);
+          if (match && match[1]) {
+            extractedLevel = match[1].toUpperCase() as CEFRLevelId;
+          }
+        }
+
+        // 3. Categoria / Departamento
+        let extractedDept: DepartmentType = 'CEFR';
+        const dataDept = doc.querySelector('[data-department]')?.getAttribute('data-department') ||
+                         doc.querySelector('[data-category]')?.getAttribute('data-category') ||
+                         doc.querySelector('meta[name="category"]')?.getAttribute('content') ||
+                         doc.querySelector('meta[name="department"]')?.getAttribute('content');
+        
+        const combinedContent = (rawHtml + ' ' + extractedTitle + ' ' + (doc.body?.textContent || '')).toLowerCase();
+
+        if (dataDept) {
+          if (/business|corporat/i.test(dataDept)) extractedDept = 'Business English';
+          else if (/kids|infantil|criança/i.test(dataDept)) extractedDept = 'English for Kids';
+          else if (/grammar|gram[áa]tica/i.test(dataDept)) extractedDept = 'Grammar Lab';
+          else extractedDept = 'CEFR';
+        } else {
+          if (/business|negotiat|corporate|procurement|client|meeting|pitch|reunião|empresarial|venda/i.test(combinedContent)) {
+            extractedDept = 'Business English';
+          } else if (/kids|children|infantil|criança|animal|zoo|coloring|jungle|toy|brinquedo/i.test(combinedContent)) {
+            extractedDept = 'English for Kids';
+          } else if (/grammar|gramática|past simple|present perfect|passive voice|relative clause|inversion|modal/i.test(combinedContent)) {
+            extractedDept = 'Grammar Lab';
+          } else {
+            extractedDept = 'CEFR';
+          }
+        }
+
+        // 4. Foco Linguístico / Tópico
+        let extractedTopic = '';
+        const dataTopic = doc.querySelector('[data-topic]')?.getAttribute('data-topic') ||
+                          doc.querySelector('[data-focus]')?.getAttribute('data-focus') ||
+                          doc.querySelector('meta[name="focus"]')?.getAttribute('content') ||
+                          doc.querySelector('meta[name="topic"]')?.getAttribute('content');
+        
+        if (dataTopic) {
+          extractedTopic = dataTopic;
+        } else {
+          const topicMatch = rawHtml.match(/(?:foco lingu[íi]stico|language focus|grammar focus|t[óo]pico|topic)\s*[:•\-]?\s*([^\n<]+)/i);
+          if (topicMatch && topicMatch[1]) {
+            extractedTopic = topicMatch[1].trim();
+          } else {
+            const h2 = doc.querySelector('h2')?.textContent?.trim();
+            if (h2 && h2 !== extractedTitle) extractedTopic = h2;
+            else extractedTopic = extractedTitle;
+          }
+        }
+
+        // 5. Resumo / Descrição
+        let extractedSummary = '';
+        const metaDesc = doc.querySelector('meta[name="description"]')?.getAttribute('content') ||
+                         doc.querySelector('meta[property="og:description"]')?.getAttribute('content');
+        const pLead = doc.querySelector('p.lead')?.textContent?.trim() || doc.querySelector('p')?.textContent?.trim();
+        if (metaDesc) extractedSummary = metaDesc;
+        else if (pLead && pLead.length > 20) extractedSummary = pLead;
+        else extractedSummary = `Aula interativa completa em HTML com materiais práticos e exercícios para professores de inglês.`;
+
+        // 6. Links externos embutidos (Drive, Slides, YouTube)
+        let extractedDrive = '';
+        let extractedSlides = '';
+        let extractedYoutube = '';
+
+        const allLinks = Array.from(doc.querySelectorAll('a[href]'));
+        for (const a of allLinks) {
+          const href = a.getAttribute('href') || '';
+          if (!extractedDrive && /drive\.google\.com/i.test(href)) {
+            extractedDrive = href;
+          }
+          if (!extractedSlides && /(docs\.google\.com\/presentation|canva\.com)/i.test(href)) {
+            extractedSlides = href;
+          }
+          if (!extractedYoutube && /(youtube\.com\/watch|youtu\.be)/i.test(href)) {
+            extractedYoutube = href;
+          }
+        }
+
+        // Atualizar os dados da aula
+        setLessonData((prev: Lesson) => ({
+          ...prev,
+          title: extractedTitle || prev.title,
+          slug: (extractedTitle || prev.title).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+          cefr_level: extractedLevel || prev.cefr_level,
+          department: extractedDept,
+          language_focus: extractedTopic || prev.language_focus,
+          summary: extractedSummary || prev.summary,
+          custom_html: rawHtml,
+          drive_url: extractedDrive || prev.drive_url,
+          slides_url: extractedSlides || prev.slides_url,
+          youtube_url: extractedYoutube || prev.youtube_url,
+        }));
+
+        setImportedFileInfo({
+          filename: file.name,
+          title: extractedTitle || lessonData.title,
+          level: extractedLevel || lessonData.cefr_level,
+          department: extractedDept,
+          topic: extractedTopic || 'Tópico Geral',
+        });
+
+        // Alternar automaticamente para modo de código para conferência
+        setStudioMode('code');
+      } catch (err) {
+        console.error('Erro ao ler arquivo HTML:', err);
+        alert('Não foi possível processar o arquivo. Verifique se é um arquivo .html ou .htm válido.');
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleHtmlFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      parseAndApplyHtmlFile(file);
+    }
+    e.target.value = '';
+  };
+
+  const handleFileDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDraggingFile(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file && (file.name.endsWith('.html') || file.name.endsWith('.htm'))) {
+      parseAndApplyHtmlFile(file);
+    }
+  };
+
   // BARREIRA DE ACESSO: ESTÚDIO EXCLUSIVO PARA O ADMIN (gestorpaid@gmail.com)
   if (!isMaster) {
     return (
@@ -485,6 +669,18 @@ export const HtmlStudio: React.FC<HtmlStudioProps> = ({
 
         {/* Botões de Ação na Direita */}
         <div className="flex items-center space-x-2">
+          {/* Botão de Upload de Arquivo HTML */}
+          <label className="px-3 py-1.5 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 hover:text-white border border-purple-500/40 text-xs font-bold flex items-center space-x-1.5 cursor-pointer transition-all shadow-sm active:scale-95">
+            <FileUp className="w-3.5 h-3.5 text-purple-400" />
+            <span>Carregar Arquivo HTML</span>
+            <input
+              type="file"
+              accept=".html,.htm"
+              onChange={handleHtmlFileInput}
+              className="hidden"
+            />
+          </label>
+
           {/* Assistente IA */}
           <button
             onClick={() => setAiModalOpen(true)}
@@ -516,6 +712,41 @@ export const HtmlStudio: React.FC<HtmlStudioProps> = ({
 
       {/* Corpo Principal do Estúdio */}
       <div className="flex-1 max-w-7xl mx-auto w-full p-4 sm:p-6 lg:p-8">
+        
+        {/* Banner de Feedback quando um Arquivo HTML é Importado */}
+        {importedFileInfo && (
+          <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-purple-950/70 to-indigo-950/70 border border-purple-500/40 text-xs flex items-center justify-between flex-wrap gap-3 animate-in fade-in">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 rounded-xl bg-purple-600/30 text-purple-300">
+                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+              </div>
+              <div>
+                <span className="font-extrabold text-white text-sm block">
+                  Arquivo HTML lido com sucesso: <span className="text-purple-300 font-mono">{importedFileInfo.filename}</span>
+                </span>
+                <span className="text-slate-300 text-[11px] block mt-0.5">
+                  Preenchimento automático: Nível <strong className="text-emerald-400 font-bold">{importedFileInfo.level}</strong> • Categoria <strong className="text-indigo-400 font-bold">{importedFileInfo.department}</strong> • Tópico: "{importedFileInfo.topic}" • Título: "{importedFileInfo.title}"
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setStudioMode('preview')}
+                className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center space-x-1.5 shadow-md shadow-emerald-600/30 transition-all active:scale-95"
+              >
+                <Play className="w-3.5 h-3.5 fill-white" />
+                <span>Testar Aula no Sandbox</span>
+              </button>
+              <button
+                onClick={() => setImportedFileInfo(null)}
+                className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
+                title="Fechar aviso"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        )}
         
         {/* MODO 1: CONSTRUTOR VISUAL */}
         {studioMode === 'visual' && (
@@ -889,6 +1120,46 @@ export const HtmlStudio: React.FC<HtmlStudioProps> = ({
                 <Play className="w-3.5 h-3.5 fill-white" />
                 <span>Testar Aula no Visualizador Sandbox</span>
               </button>
+            </div>
+
+            {/* Área de Upload / Arrastar Arquivo HTML */}
+            <div 
+              onDragOver={(e) => { e.preventDefault(); setIsDraggingFile(true); }}
+              onDragLeave={() => setIsDraggingFile(false)}
+              onDrop={handleFileDrop}
+              className={`p-4 rounded-2xl border-2 border-dashed transition-all flex items-center justify-between flex-wrap gap-4 ${
+                isDraggingFile 
+                  ? 'border-purple-400 bg-purple-950/40 text-purple-200 ring-2 ring-purple-500/30' 
+                  : 'border-slate-800 bg-slate-950/60 hover:border-slate-700'
+              }`}
+            >
+              <div className="flex items-center space-x-3.5">
+                <div className="p-3 rounded-2xl bg-purple-600/20 text-purple-400 border border-purple-500/30 shrink-0">
+                  <FileUp className="w-6 h-6" />
+                </div>
+                <div>
+                  <h4 className="font-extrabold text-sm text-white flex items-center space-x-2">
+                    <span>Importar Arquivo Completo em HTML (.html / .htm)</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/30">
+                      Auto-Preenchimento Inteligente
+                    </span>
+                  </h4>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Carregue qualquer arquivo de aula: a plataforma extrai <strong>Nível (A1 a C2)</strong>, <strong>Categoria</strong>, <strong>Tópico/Foco</strong> e carrega o código no sandbox de testes.
+                  </p>
+                </div>
+              </div>
+
+              <label className="px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs flex items-center space-x-2 cursor-pointer transition-all shadow-md shadow-purple-600/25 active:scale-95">
+                <Upload className="w-4 h-4" />
+                <span>Escolher Arquivo do PC</span>
+                <input
+                  type="file"
+                  accept=".html,.htm"
+                  onChange={handleHtmlFileInput}
+                  className="hidden"
+                />
+              </label>
             </div>
 
             {/* Modelos de Código Rápido */}
