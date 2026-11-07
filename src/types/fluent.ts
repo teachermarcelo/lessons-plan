@@ -117,6 +117,10 @@ export interface Lesson {
   discussion_questions?: string[];
   custom_html?: string;
   custom_css?: string;
+  drive_url?: string;
+  slides_url?: string;
+  youtube_url?: string;
+  external_links?: { title: string; url: string; type: 'drive' | 'slides' | 'youtube' | 'quiz' | 'external' }[];
 }
 
 export interface Collection {

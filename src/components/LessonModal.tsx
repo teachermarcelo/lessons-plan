@@ -16,8 +16,14 @@ import {
   Check, 
   ExternalLink, 
   Crown,
-  ArrowLeft
+  ArrowLeft,
+  Sparkles,
+  FolderDown,
+  Presentation,
+  Youtube,
+  Play
 } from 'lucide-react';
+import { InteractiveHtmlViewer } from './InteractiveHtmlViewer';
 import { Lesson } from '../types/fluent';
 import { FlashcardPlayer } from './FlashcardPlayer';
 import { QuizRunner } from './QuizRunner';
@@ -45,7 +51,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
   isSubscribed,
   onOpenSubscribe,
 }) => {
-  const [activeTab, setActiveTab] = useState<'teacher' | 'student' | 'vocab' | 'grammar' | 'flashcards' | 'quiz'>('teacher');
+  const [activeTab, setActiveTab] = useState<'teacher' | 'student' | 'vocab' | 'grammar' | 'flashcards' | 'quiz' | 'interactive' | 'multimedia'>('teacher');
   const [pdfMenuOpen, setPdfMenuOpen] = useState(false);
 
   // Fechar com tecla ESC
@@ -250,6 +256,30 @@ export const LessonModal: React.FC<LessonModalProps> = ({
           >
             <BookOpen className="w-4 h-4" />
             <span>FICHA DO ALUNO</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('interactive')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 flex-shrink-0 ${
+              activeTab === 'interactive'
+                ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-600/30'
+                : 'text-purple-700 dark:text-purple-300 hover:text-white hover:bg-purple-600 border border-purple-300 dark:border-purple-500/30'
+            }`}
+          >
+            <Sparkles className="w-4 h-4 text-purple-400" />
+            <span>⚡ AULA INTERATIVA & HTML</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('multimedia')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 flex-shrink-0 ${
+              activeTab === 'multimedia'
+                ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-600/30'
+                : 'text-emerald-700 dark:text-emerald-300 hover:text-white hover:bg-emerald-600 border border-emerald-300 dark:border-emerald-500/30'
+            }`}
+          >
+            <FolderDown className="w-4 h-4 text-emerald-400" />
+            <span>🎬 DRIVE, SLIDES & YOUTUBE</span>
           </button>
 
           <button
@@ -552,6 +582,136 @@ export const LessonModal: React.FC<LessonModalProps> = ({
           {activeTab === 'quiz' && (
             <div>
               <QuizRunner questions={lesson.quizzes || []} lessonTitle={lesson.title} />
+            </div>
+          )}
+
+          {/* ABA 7: AULA INTERATIVA & HTML SANDBOX */}
+          {activeTab === 'interactive' && (
+            <div className="space-y-4">
+              <div className="p-4 rounded-2xl bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-500/30 flex items-center justify-between flex-wrap gap-2 text-xs">
+                <div className="flex items-center space-x-2 text-purple-800 dark:text-purple-300">
+                  <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                  <span>Ambiente de aula interativa: clique, responda e teste as atividades em tempo real.</span>
+                </div>
+                <button
+                  onClick={() => onEditInStudio(lesson)}
+                  className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs flex items-center space-x-1"
+                >
+                  <Edit3 className="w-3.5 h-3.5" />
+                  <span>Editar Código no Estúdio</span>
+                </button>
+              </div>
+
+              <InteractiveHtmlViewer
+                htmlCode={lesson.custom_html || `<div class="max-w-xl mx-auto p-6 bg-slate-900 text-white rounded-2xl border border-purple-500/30 text-center font-sans"><h2 class="text-xl font-bold mb-2">${lesson.title}</h2><p class="text-xs text-slate-300 mb-6">${lesson.summary}</p><div class="p-4 rounded-xl bg-slate-800 text-left text-xs space-y-2"><p><strong>Foco:</strong> ${lesson.language_focus}</p><p><strong>Warm-up:</strong> ${lesson.teacher_version.warmup}</p></div></div>`}
+                title={`Aula Interativa: ${lesson.title}`}
+                heightClass="h-[560px]"
+              />
+            </div>
+          )}
+
+          {/* ABA 8: RECURSOS MULTIMÍDIA (DRIVE, SLIDES, YOUTUBE & LINKS EXTERNOS) */}
+          {activeTab === 'multimedia' && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Cartão Google Drive */}
+                <div className="p-5 rounded-2xl bg-emerald-50 dark:bg-slate-950/80 border border-emerald-200 dark:border-emerald-500/30 space-y-3">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                      <FolderDown className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="font-extrabold text-sm text-slate-900 dark:text-white">Pasta no Google Drive</h4>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">PDFs de apoio, áudios e folhas de exercícios</p>
+                    </div>
+                  </div>
+                  <p className="text-xs text-slate-700 dark:text-slate-300">
+                    Acesse a pasta na nuvem com todos os arquivos de apoio e materiais para impressão desta aula.
+                  </p>
+                  <a
+                    href={lesson.drive_url || 'https://drive.google.com'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition-all active:scale-95"
+                  >
+                    <span>Abrir Google Drive</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+
+                {/* Cartão Google Slides */}
+                <div className="p-5 rounded-2xl bg-amber-50 dark:bg-slate-950/80 border border-amber-200 dark:border-amber-500/30 space-y-3">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                      <Presentation className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="font-extrabold text-sm text-slate-900 dark:text-white">Apresentação no Google Slides</h4>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">Slides prontos para projetar em aula ou Zoom</p>
+                    </div>
+                  </div>
+                  <p className="text-xs text-slate-700 dark:text-slate-300">
+                    Projete os slides oficiais da aula diretamente na tela do seu aluno sem precisar criar apresentações.
+                  </p>
+                  <a
+                    href={lesson.slides_url || 'https://docs.google.com/presentation'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-md transition-all active:scale-95"
+                  >
+                    <span>Abrir Apresentação de Slides</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+              </div>
+
+              {/* Seção YouTube: Player Incorporado e Link Direto */}
+              <div className="p-6 rounded-2xl bg-slate-100 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 space-y-4">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-8 h-8 rounded-xl bg-rose-500/20 text-rose-600 dark:text-rose-400 flex items-center justify-center">
+                      <Youtube className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="font-extrabold text-sm text-slate-900 dark:text-white">Vídeo de Apoio no YouTube (Listening & Contexto)</h4>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">Assista com os alunos ou envie como tarefa de casa</p>
+                    </div>
+                  </div>
+                  {lesson.youtube_url && (
+                    <a
+                      href={lesson.youtube_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold flex items-center space-x-1"
+                    >
+                      <span>Abrir no YouTube</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
+                </div>
+
+                {lesson.youtube_url ? (
+                  <div className="aspect-video w-full rounded-2xl overflow-hidden bg-black border border-slate-800 shadow-xl">
+                    <iframe
+                      src={lesson.youtube_url.includes('embed') ? lesson.youtube_url : lesson.youtube_url.replace('watch?v=', 'embed/')}
+                      title={`Vídeo YouTube: ${lesson.title}`}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      className="w-full h-full border-0"
+                    />
+                  </div>
+                ) : (
+                  <div className="p-8 text-center border-2 border-dashed border-slate-300 dark:border-slate-800 rounded-2xl text-xs text-slate-500 dark:text-slate-400">
+                    <p>Nenhum vídeo do YouTube anexado a esta aula ainda.</p>
+                    <button
+                      onClick={() => onEditInStudio(lesson)}
+                      className="mt-2 text-purple-600 dark:text-purple-400 font-bold hover:underline"
+                    >
+                      Clique para adicionar link de vídeo no Estúdio →
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>

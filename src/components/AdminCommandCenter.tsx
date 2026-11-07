@@ -14,6 +14,7 @@ import {
   AlertCircle, 
   RefreshCw, 
   Eye, 
+  EyeOff,
   FileDown, 
   ExternalLink,
   Copy,
@@ -103,10 +104,113 @@ export const AdminCommandCenter: React.FC<AdminCommandCenterProps> = ({
     },
   ]);
 
-  // Gestão de Senha Master
+  // Master Admin Authentication Gate (Requer confirmação de senha do Gestor)
+  const [isAdminUnlocked, setIsAdminUnlocked] = useState<boolean>(() => {
+    try {
+      return typeof window !== 'undefined' && 
+             sessionStorage.getItem('fluent_admin_session_unlocked') === 'true' &&
+             currentUser?.role === 'ADMIN' && currentUser?.email === MASTER_ADMIN_EMAIL;
+    } catch (e) {
+      return false;
+    }
+  });
+  const [adminEmailInput, setAdminEmailInput] = useState<string>(() => {
+    return currentUser?.role === 'ADMIN' && currentUser?.email ? currentUser.email : '';
+  });
+  const [adminPasswordInput, setAdminPasswordInput] = useState('');
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [adminAuthError, setAdminAuthError] = useState<string | null>(null);
+
+  // Gestão de Senha Master & Visualização (Mostrar / Ocultar Senha)
   const [currentAdminPassword, setCurrentAdminPassword] = useState(getStoredAdminPassword());
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [newPasswordInput, setNewPasswordInput] = useState('');
+  const [confirmPasswordInput, setConfirmPasswordInput] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
   const [passwordFeedback, setPasswordFeedback] = useState<string | null>(null);
+
+  // Modal de Recuperação/Redefinição Rápida de Senha
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [resetEmailInput, setResetEmailInput] = useState(MASTER_ADMIN_EMAIL);
+  const [resetNewPassInput, setResetNewPassInput] = useState('');
+  const [showResetPass, setShowResetPass] = useState(false);
+  const [resetFeedback, setResetFeedback] = useState<string | null>(null);
+
+  const handleAdminUnlock = (e: React.FormEvent) => {
+    e.preventDefault();
+    const storedPass = getStoredAdminPassword();
+    if (adminEmailInput.trim().toLowerCase() === MASTER_ADMIN_EMAIL.toLowerCase() && adminPasswordInput === storedPass) {
+      try {
+        sessionStorage.setItem('fluent_admin_session_unlocked', 'true');
+      } catch (err) {}
+      setIsAdminUnlocked(true);
+      setAdminAuthError(null);
+      if (onAdminLoginSuccess) {
+        onAdminLoginSuccess({
+          id: 'usr-admin-gestor',
+          email: MASTER_ADMIN_EMAIL,
+          full_name: 'Administrador Master (Gestor)',
+          role: 'ADMIN',
+          country: 'Brasil',
+          preferred_language: 'pt-BR',
+          teaching_context: 'Diretoria Executiva FLUENT IMMERSION',
+          subscription_status: 'active',
+          created_at: '2026-01-01T00:00:00Z',
+          last_login_at: new Date().toISOString(),
+        });
+      }
+    } else {
+      setAdminAuthError('Credenciais incorretas! Verifique o e-mail ou a senha de acesso.');
+    }
+  };
+
+  const handleAdminLock = () => {
+    try {
+      sessionStorage.removeItem('fluent_admin_session_unlocked');
+    } catch (err) {}
+    setIsAdminUnlocked(false);
+    setAdminPasswordInput('');
+    setAdminAuthError(null);
+  };
+
+  const handleResetAdminPassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (resetEmailInput.trim().toLowerCase() !== MASTER_ADMIN_EMAIL.toLowerCase()) {
+      setResetFeedback('Apenas o e-mail master gestorpaid@gmail.com pode redefinir esta senha.');
+      return;
+    }
+    if (resetNewPassInput.trim().length < 4) {
+      setResetFeedback('A nova senha deve ter no mínimo 4 caracteres.');
+      return;
+    }
+    setStoredAdminPassword(resetNewPassInput.trim());
+    setCurrentAdminPassword(resetNewPassInput.trim());
+    setResetFeedback('✅ Senha redefinida com sucesso!');
+    setTimeout(() => {
+      setShowResetModal(false);
+      setAdminPasswordInput(resetNewPassInput.trim());
+      setResetFeedback(null);
+    }, 1200);
+  };
+
+  const handleSavePassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPasswordInput.trim()) return;
+    if (newPasswordInput.trim().length < 4) {
+      setPasswordFeedback('A senha deve conter no mínimo 4 caracteres.');
+      return;
+    }
+    if (confirmPasswordInput && newPasswordInput.trim() !== confirmPasswordInput.trim()) {
+      setPasswordFeedback('As senhas digitadas não coincidem. Digite iguais para confirmar.');
+      return;
+    }
+    setStoredAdminPassword(newPasswordInput.trim());
+    setCurrentAdminPassword(newPasswordInput.trim());
+    setPasswordFeedback('✅ Senha interna do Administrador Master atualizada com sucesso!');
+    setNewPasswordInput('');
+    setConfirmPasswordInput('');
+    setTimeout(() => setPasswordFeedback(null), 4000);
+  };
 
   // Simulador do Fluxo Kiwify
   const [simEmail, setSimEmail] = useState('professor.teste@gmail.com');
@@ -147,16 +251,6 @@ export const AdminCommandCenter: React.FC<AdminCommandCenterProps> = ({
         return m;
       })
     );
-  };
-
-  const handleSavePassword = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newPasswordInput.trim()) return;
-    setStoredAdminPassword(newPasswordInput.trim());
-    setCurrentAdminPassword(newPasswordInput.trim());
-    setPasswordFeedback('Senha do Administrador Master atualizada com sucesso!');
-    setNewPasswordInput('');
-    setTimeout(() => setPasswordFeedback(null), 3000);
   };
 
   const handleRunSimulation = async () => {
@@ -252,6 +346,182 @@ export const AdminCommandCenter: React.FC<AdminCommandCenterProps> = ({
     }
   };
 
+  // SE O ADMIN ESTIVER BLOQUEADO: EXIBIR TELA DE AUTENTICAÇÃO COM PROTEÇÃO DE SENHA
+  if (!isAdminUnlocked) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-4">
+        <div className="relative w-full max-w-md">
+          {/* Luz de fundo decorativa */}
+          <div className="absolute -top-16 -left-16 w-64 h-64 bg-orange-600/15 rounded-full blur-3xl pointer-events-none"></div>
+          <div className="absolute -bottom-16 -right-16 w-64 h-64 bg-purple-600/15 rounded-full blur-3xl pointer-events-none"></div>
+
+          <div className="relative bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
+            <div className="text-center space-y-2">
+              <div className="inline-flex p-3.5 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-500 text-white shadow-lg shadow-orange-500/25 mb-1">
+                <ShieldCheck className="w-8 h-8" />
+              </div>
+              <div className="inline-block px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-widest bg-orange-500/15 text-orange-400 border border-orange-500/30">
+                Área Restrita — Painel de Gestão
+              </div>
+              <h2 className="text-2xl font-black text-white">Centro de Comando Admin</h2>
+              <p className="text-xs text-slate-400">
+                Digite a senha mestre do Gestor para desbloquear métricas, webhooks e o estúdio de criação.
+              </p>
+            </div>
+
+            {adminAuthError && (
+              <div className="p-3.5 rounded-xl bg-red-500/20 border border-red-500/30 text-red-300 font-semibold text-xs flex items-center space-x-2.5">
+                <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
+                <span>{adminAuthError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleAdminUnlock} className="space-y-4 text-xs">
+              <div>
+                <label className="text-slate-300 font-bold block mb-1">E-mail do Administrador Master</label>
+                <div className="relative">
+                  <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="email"
+                    required
+                    value={adminEmailInput}
+                    placeholder="email@administrador.com"
+                    onChange={(e) => setAdminEmailInput(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-3 text-white font-mono placeholder-slate-600 focus:outline-none focus:border-orange-500 transition-colors"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-slate-300 font-bold block mb-1">Senha de Acesso</label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type={showLoginPassword ? 'text' : 'password'}
+                    required
+                    placeholder="••••••••••••"
+                    value={adminPasswordInput}
+                    onChange={(e) => setAdminPasswordInput(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-10 py-3 text-white font-mono placeholder-slate-600 focus:outline-none focus:border-orange-500 transition-colors"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowLoginPassword(!showLoginPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-1 rounded-lg transition-colors"
+                    title={showLoginPassword ? 'Ocultar senha' : 'Ver senha digitada'}
+                  >
+                    {showLoginPassword ? <EyeOff className="w-4 h-4 text-orange-400" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                <span className="text-[10px] text-slate-500 mt-1 block">
+                  Clique no ícone do olho 👁️ para conferir a senha digitada.
+                </span>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 active:scale-95 text-white font-black text-sm flex items-center justify-center space-x-2 shadow-lg shadow-orange-500/25 transition-all cursor-pointer"
+              >
+                <KeyRound className="w-4 h-4" />
+                <span>Desbloquear Painel Admin</span>
+              </button>
+            </form>
+
+            <div className="pt-2 border-t border-slate-800 text-center">
+              <button
+                type="button"
+                onClick={onClose}
+                className="text-slate-400 hover:text-white text-xs font-semibold py-1.5 px-3 rounded-lg hover:bg-slate-800/60 transition-colors"
+              >
+                ← Voltar para o Site (Início)
+              </button>
+            </div>
+          </div>
+
+          {/* Modal de Redefinição Interna de Senha */}
+          {showResetModal && (
+            <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+              <div className="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2 text-orange-400 font-bold text-sm">
+                    <KeyRound className="w-4 h-4" />
+                    <span>Redefinir Senha do Gestor</span>
+                  </div>
+                  <button
+                    onClick={() => setShowResetModal(false)}
+                    className="text-slate-400 hover:text-white text-xs"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                {resetFeedback && (
+                  <div className={`p-3 rounded-xl text-xs font-semibold ${
+                    resetFeedback.includes('✅') 
+                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' 
+                      : 'bg-red-500/20 text-red-300 border border-red-500/30'
+                  }`}>
+                    {resetFeedback}
+                  </div>
+                )}
+
+                <form onSubmit={handleResetAdminPassword} className="space-y-3 text-xs">
+                  <div>
+                    <label className="text-slate-300 block mb-1">E-mail do Administrador</label>
+                    <input
+                      type="email"
+                      required
+                      value={resetEmailInput}
+                      onChange={(e) => setResetEmailInput(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white font-mono text-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-slate-300 block mb-1">Nova Senha</label>
+                    <div className="relative">
+                      <input
+                        type={showResetPass ? 'text' : 'password'}
+                        required
+                        placeholder="Mínimo 4 caracteres"
+                        value={resetNewPassInput}
+                        onChange={(e) => setResetNewPassInput(e.target.value)}
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-3 pr-10 py-2 text-white font-mono text-xs"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowResetPass(!showResetPass)}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-1"
+                      >
+                        {showResetPass ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex space-x-2 pt-2">
+                    <button
+                      type="submit"
+                      className="flex-1 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs"
+                    >
+                      Salvar Senha
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowResetModal(false)}
+                      className="px-3 py-2.5 rounded-xl bg-slate-800 text-slate-300 text-xs"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-950 text-white p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -276,6 +546,14 @@ export const AdminCommandCenter: React.FC<AdminCommandCenterProps> = ({
           </div>
 
           <div className="flex items-center space-x-3">
+            <button
+              onClick={handleAdminLock}
+              className="px-3.5 py-2.5 rounded-xl bg-red-500/15 hover:bg-red-500/25 border border-red-500/30 text-red-400 hover:text-red-300 text-xs font-bold flex items-center space-x-1.5 transition-all"
+              title="Bloquear Centro de Comando e exigir senha novamente"
+            >
+              <Lock className="w-3.5 h-3.5" />
+              <span>Bloquear / Sair</span>
+            </button>
             <button
               onClick={() => {
                 setEditingLesson(null);
@@ -840,27 +1118,52 @@ export const AdminCommandCenter: React.FC<AdminCommandCenterProps> = ({
               <span className="text-xs font-black text-orange-400 uppercase tracking-widest block mb-1">
                 AUTENTICAÇÃO DO ADMINISTRADOR MASTER
               </span>
-              <h3 className="text-xl font-black text-white">Credenciais & Redefinição de Senha</h3>
+              <h3 className="text-xl font-black text-white">Credenciais & Redefinição de Senha Interna</h3>
               <p className="text-xs text-slate-400 mt-1">
-                Acesso exclusivo para gerenciamento da plataforma, estúdio de criação e integração de pagamentos.
+                Gerencie e confira a senha mestre de acesso ao painel de controle e ao estúdio de criação.
               </p>
             </div>
 
-            <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2 text-xs">
+            {/* Visualização da Senha Atual com Botão Mostrar/Ocultar (Olho) */}
+            <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3 text-xs">
               <div className="flex items-center justify-between">
-                <span className="text-slate-400">E-mail do Administrador:</span>
+                <span className="text-slate-400">E-mail do Administrador Master:</span>
                 <span className="font-bold text-white font-mono">{MASTER_ADMIN_EMAIL}</span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-400">Senha Atual Ativa:</span>
-                <span className="font-bold text-emerald-400 font-mono">{currentAdminPassword}</span>
+              <div className="flex items-center justify-between pt-2 border-t border-slate-800/80">
+                <span className="text-slate-400">Senha Atual Ativa no Sistema:</span>
+                <div className="flex items-center space-x-2">
+                  <span className="font-bold text-emerald-400 font-mono text-sm px-2 py-0.5 rounded bg-emerald-950/60 border border-emerald-500/30">
+                    {showCurrentPassword ? currentAdminPassword : '••••••••'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                    className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center space-x-1.5 transition-colors"
+                    title={showCurrentPassword ? 'Ocultar senha' : 'Ver senha'}
+                  >
+                    {showCurrentPassword ? <EyeOff className="w-3.5 h-3.5 text-orange-400" /> : <Eye className="w-3.5 h-3.5" />}
+                    <span className="text-[10px] font-bold">{showCurrentPassword ? 'Ocultar' : 'Ver Senha'}</span>
+                  </button>
+                </div>
               </div>
             </div>
 
+            {/* Formulário: Trocar Senha Interna */}
             <form onSubmit={handleSavePassword} className="space-y-4">
+              <div className="border-t border-slate-800 pt-4">
+                <span className="text-xs font-black text-purple-400 uppercase tracking-wider block mb-2">
+                  Trocar Senha Interna do Painel
+                </span>
+              </div>
+
               {passwordFeedback && (
-                <div className="p-3 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-semibold text-xs flex items-center space-x-2">
-                  <Check className="w-4 h-4" />
+                <div className={`p-3.5 rounded-xl text-xs font-semibold flex items-center space-x-2.5 ${
+                  passwordFeedback.includes('✅') 
+                    ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-300' 
+                    : 'bg-red-500/20 border border-red-500/30 text-red-300'
+                }`}>
+                  {passwordFeedback.includes('✅') ? <Check className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
                   <span>{passwordFeedback}</span>
                 </div>
               )}
@@ -869,23 +1172,59 @@ export const AdminCommandCenter: React.FC<AdminCommandCenterProps> = ({
                 <label className="text-xs text-slate-300 font-bold block mb-1">
                   Digitar Nova Senha do Administrador
                 </label>
+                <div className="relative">
+                  <input
+                    type={showNewPassword ? 'text' : 'password'}
+                    required
+                    placeholder="Mínimo de 4 caracteres"
+                    value={newPasswordInput}
+                    onChange={(e) => setNewPasswordInput(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-3 pr-10 py-3 text-white text-xs font-mono focus:outline-none focus:border-orange-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-1"
+                    title={showNewPassword ? 'Ocultar senha' : 'Ver senha'}
+                  >
+                    {showNewPassword ? <EyeOff className="w-4 h-4 text-orange-400" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs text-slate-300 font-bold block mb-1">
+                  Confirmar Nova Senha
+                </label>
                 <input
-                  type="text"
+                  type={showNewPassword ? 'text' : 'password'}
                   required
-                  placeholder="Ex: nova_senha_segura_2026"
-                  value={newPasswordInput}
-                  onChange={(e) => setNewPasswordInput(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white text-xs font-mono focus:outline-none focus:border-purple-500"
+                  placeholder="Repita a nova senha para confirmação"
+                  value={confirmPasswordInput}
+                  onChange={(e) => setConfirmPasswordInput(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white text-xs font-mono focus:outline-none focus:border-orange-500"
                 />
               </div>
 
-              <button
-                type="submit"
-                className="w-full py-3 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 active:scale-95 text-white font-bold text-xs flex items-center justify-center space-x-2 shadow-lg shadow-orange-500/25 transition-all"
-              >
-                <KeyRound className="w-4 h-4" />
-                <span>Salvar e Redefinir Senha do Admin</span>
-              </button>
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                <button
+                  type="submit"
+                  className="flex-1 py-3 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 active:scale-95 text-white font-bold text-xs flex items-center justify-center space-x-2 shadow-lg shadow-orange-500/25 transition-all cursor-pointer"
+                >
+                  <KeyRound className="w-4 h-4" />
+                  <span>Salvar Nova Senha Interna</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleAdminLock}
+                  className="px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold flex items-center justify-center space-x-2 transition-all cursor-pointer"
+                  title="Bloqueia o painel para testar o login com a nova senha"
+                >
+                  <Lock className="w-4 h-4" />
+                  <span>Bloquear e Testar Senha</span>
+                </button>
+              </div>
             </form>
           </div>
         )}

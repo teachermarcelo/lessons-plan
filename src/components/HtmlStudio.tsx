@@ -3,6 +3,7 @@ import {
   Sparkles, 
   Code, 
   Eye, 
+  EyeOff,
   Layout, 
   Save, 
   FileDown, 
@@ -19,8 +20,14 @@ import {
   ArrowRight,
   Lock,
   KeyRound,
-  ShieldCheck
+  ShieldCheck,
+  FolderDown,
+  Presentation,
+  Youtube,
+  Play,
+  RotateCcw
 } from 'lucide-react';
+import { InteractiveHtmlViewer } from './InteractiveHtmlViewer';
 import { Lesson, CEFRLevelId, DepartmentType, UserProfile } from '../types/fluent';
 import { generateLessonPDF } from '../lib/pdfGenerator';
 import { 
@@ -56,9 +63,14 @@ export const HtmlStudio: React.FC<HtmlStudioProps> = ({
   const [savedNotice, setSavedNotice] = useState(false);
 
   // Admin lock authentication state
-  const isMaster = currentUser?.email === MASTER_ADMIN_EMAIL || currentUser?.role === 'ADMIN';
-  const [adminEmailInput, setAdminEmailInput] = useState(MASTER_ADMIN_EMAIL);
+  const isMaster = (currentUser?.email === MASTER_ADMIN_EMAIL || currentUser?.role === 'ADMIN') &&
+    (typeof window !== 'undefined' && sessionStorage.getItem('fluent_admin_session_unlocked') === 'true');
+  const [adminEmailInput, setAdminEmailInput] = useState<string>(() => {
+    return currentUser?.role === 'ADMIN' && currentUser?.email ? currentUser.email : '';
+  });
   const [adminPasswordInput, setAdminPasswordInput] = useState('');
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showResetPassword, setShowResetPassword] = useState(false);
   const [adminAuthError, setAdminAuthError] = useState<string | null>(null);
   const [showResetModal, setShowResetModal] = useState(false);
   const [newPasswordInput, setNewPasswordInput] = useState('');
@@ -67,7 +79,10 @@ export const HtmlStudio: React.FC<HtmlStudioProps> = ({
   const handleAdminAuthSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const storedPass = getStoredAdminPassword();
-    if (adminEmailInput.trim().toLowerCase() === MASTER_ADMIN_EMAIL && adminPasswordInput === storedPass) {
+    if (adminEmailInput.trim().toLowerCase() === MASTER_ADMIN_EMAIL.toLowerCase() && adminPasswordInput === storedPass) {
+      try {
+        sessionStorage.setItem('fluent_admin_session_unlocked', 'true');
+      } catch (err) {}
       if (onAdminLoginSuccess) {
         onAdminLoginSuccess({
           ...DEFAULT_ADMIN_USER,
@@ -280,11 +295,11 @@ export const HtmlStudio: React.FC<HtmlStudioProps> = ({
 
           <div>
             <span className="text-[10px] font-extrabold text-orange-400 uppercase tracking-widest block mb-1">
-              ÁREA RESTRITA AO MASTER ADMIN
+              ÁREA RESTRITA AO ADMINISTRADOR
             </span>
             <h2 className="text-2xl font-black text-white">Estúdio HTML & Criação</h2>
             <p className="text-xs text-slate-300 mt-2 leading-relaxed">
-              O Estúdio HTML e o Construtor com IA são ferramentas restritas ao Administrador Master (<span className="text-purple-300 font-semibold">{MASTER_ADMIN_EMAIL}</span>).
+              O Estúdio HTML e o Construtor com IA são ferramentas restritas de criação pedagógica da plataforma.
             </p>
           </div>
 
@@ -302,40 +317,42 @@ export const HtmlStudio: React.FC<HtmlStudioProps> = ({
 
           <form onSubmit={handleAdminAuthSubmit} className="space-y-4 text-xs text-left">
             <div>
-              <label className="text-slate-400 block mb-1">E-mail do Administrador</label>
+              <label className="text-slate-400 block mb-1">E-mail de Acesso</label>
               <input
                 type="email"
                 required
                 value={adminEmailInput}
+                placeholder="email@administrador.com"
                 onChange={(e) => setAdminEmailInput(e.target.value)}
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-purple-500 font-mono text-xs"
               />
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-slate-400">Senha do Administrador</label>
+              <label className="text-slate-400 block mb-1">Senha de Acesso</label>
+              <div className="relative">
+                <input
+                  type={showLoginPassword ? 'text' : 'password'}
+                  required
+                  placeholder="••••••••••••"
+                  value={adminPasswordInput}
+                  onChange={(e) => setAdminPasswordInput(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-4 pr-10 py-2.5 text-white font-mono text-xs focus:outline-none focus:border-purple-500"
+                />
                 <button
                   type="button"
-                  onClick={() => setShowResetModal(true)}
-                  className="text-[11px] text-purple-400 hover:text-purple-300 underline"
+                  onClick={() => setShowLoginPassword(!showLoginPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-1 rounded-lg"
+                  title={showLoginPassword ? 'Ocultar senha' : 'Ver senha digitada'}
                 >
-                  Redefinir senha internamente
+                  {showLoginPassword ? <EyeOff className="w-4 h-4 text-purple-400" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
-              <input
-                type="password"
-                required
-                placeholder="Digite a senha (padrão: 823638)"
-                value={adminPasswordInput}
-                onChange={(e) => setAdminPasswordInput(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-purple-500"
-              />
             </div>
 
             <button
               type="submit"
-              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black text-xs shadow-lg shadow-purple-600/30 flex items-center justify-center space-x-2 transition-all active:scale-95"
+              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black text-xs shadow-lg shadow-purple-600/30 flex items-center justify-center space-x-2 transition-all active:scale-95 cursor-pointer"
             >
               <KeyRound className="w-4 h-4" />
               <span>Desbloquear Estúdio HTML</span>
@@ -350,7 +367,7 @@ export const HtmlStudio: React.FC<HtmlStudioProps> = ({
               ← Voltar para a Biblioteca
             </button>
             <span className="text-[11px] text-slate-500">
-              Admin: gestorpaid@gmail.com
+              Acesso Restrito
             </span>
           </div>
         </div>
@@ -361,19 +378,29 @@ export const HtmlStudio: React.FC<HtmlStudioProps> = ({
             <div className="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-2xl p-6 text-left space-y-4">
               <h3 className="font-bold text-base text-white">Redefinir Senha do Admin</h3>
               <p className="text-xs text-slate-400">
-                Altere a senha de acesso ao Estúdio para o e-mail gestorpaid@gmail.com:
+                Altere a senha mestre de acesso interno do Administrador:
               </p>
               <form onSubmit={handleResetPassword} className="space-y-3 text-xs">
                 <div>
                   <label className="text-slate-300 block mb-1">Nova Senha</label>
-                  <input
-                    type="password"
-                    required
-                    placeholder="Mínimo 4 caracteres"
-                    value={newPasswordInput}
-                    onChange={(e) => setNewPasswordInput(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showResetPassword ? 'text' : 'password'}
+                      required
+                      placeholder="Mínimo 4 caracteres"
+                      value={newPasswordInput}
+                      onChange={(e) => setNewPasswordInput(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-3 pr-10 py-2.5 text-white font-mono text-xs focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowResetPassword(!showResetPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-1"
+                      title={showResetPassword ? 'Ocultar senha' : 'Ver senha digitada'}
+                    >
+                      {showResetPassword ? <EyeOff className="w-3.5 h-3.5 text-purple-400" /> : <Eye className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
                 </div>
                 <div className="flex items-center justify-end space-x-2 pt-2">
                   <button
@@ -584,6 +611,61 @@ export const HtmlStudio: React.FC<HtmlStudioProps> = ({
                 </div>
               </div>
 
+              {/* RECURSOS MULTIMÍDIA PARA O PROFESSOR */}
+              <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-3.5">
+                <div className="flex items-center space-x-2 border-b border-slate-800 pb-2">
+                  <FolderDown className="w-4 h-4 text-emerald-400" />
+                  <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+                    Recursos Extras (Drive, Slides, YouTube)
+                  </h4>
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  Insira os links para que os professores acessem materiais em nuvem e vídeos com 1 clique na aula.
+                </p>
+
+                <div>
+                  <label className="text-[11px] font-bold text-slate-300 flex items-center space-x-1.5 mb-1">
+                    <FolderDown className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Link do Google Drive (Pasta de Fichas/Áudios)</span>
+                  </label>
+                  <input
+                    type="url"
+                    placeholder="https://drive.google.com/drive/folders/..."
+                    value={lessonData.drive_url || ''}
+                    onChange={(e) => setLessonData({ ...lessonData, drive_url: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white font-mono placeholder-slate-600 focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold text-slate-300 flex items-center space-x-1.5 mb-1">
+                    <Presentation className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Link de Slides (Google Slides ou Canva)</span>
+                  </label>
+                  <input
+                    type="url"
+                    placeholder="https://docs.google.com/presentation/d/.../edit"
+                    value={lessonData.slides_url || ''}
+                    onChange={(e) => setLessonData({ ...lessonData, slides_url: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white font-mono placeholder-slate-600 focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold text-slate-300 flex items-center space-x-1.5 mb-1">
+                    <Youtube className="w-3.5 h-3.5 text-rose-400" />
+                    <span>Link do Vídeo no YouTube (Listening / Debate)</span>
+                  </label>
+                  <input
+                    type="url"
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    value={lessonData.youtube_url || ''}
+                    onChange={(e) => setLessonData({ ...lessonData, youtube_url: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white font-mono placeholder-slate-600 focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+              </div>
+
               {/* Modelos Prontos em 1 Clique */}
               <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800">
                 <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
@@ -788,90 +870,187 @@ export const HtmlStudio: React.FC<HtmlStudioProps> = ({
         {/* MODO 2: EDITOR DE CÓDIGO HTML */}
         {studioMode === 'code' && (
           <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-3 border-b border-slate-800 pb-4">
               <div>
-                <h3 className="text-sm font-extrabold text-purple-400 uppercase tracking-wider">
-                  Editor de Código HTML & CSS
+                <h3 className="text-sm font-extrabold text-purple-400 uppercase tracking-wider flex items-center space-x-1.5">
+                  <Code className="w-4 h-4" />
+                  <span>Editor de Código HTML & Interatividades</span>
                 </h3>
-                <p className="text-xs text-slate-400">
-                  Insira tags HTML personalizadas, tabelas estilizadas ou componentes sob medida.
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Insira qualquer código HTML, CSS ou JavaScript. O visualizador isola o código em sandbox sem quebrar a plataforma.
                 </p>
               </div>
+
+              {/* Botão de teste direto */}
+              <button
+                onClick={() => setStudioMode('preview')}
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-xs flex items-center space-x-1.5 shadow-md shadow-emerald-600/25 transition-all"
+              >
+                <Play className="w-3.5 h-3.5 fill-white" />
+                <span>Testar Aula no Visualizador Sandbox</span>
+              </button>
+            </div>
+
+            {/* Modelos de Código Rápido */}
+            <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 flex items-center space-x-2 flex-wrap gap-2 text-xs">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                Modelos Rápidos:
+              </span>
+              <button
+                type="button"
+                onClick={() => setLessonData({
+                  ...lessonData,
+                  custom_html: `<div class="max-w-2xl mx-auto p-6 bg-slate-900 text-white rounded-2xl border border-purple-500/30 font-sans shadow-xl">
+  <div class="flex items-center space-x-2 text-purple-400 mb-4">
+    <span class="text-xs font-bold uppercase tracking-wider bg-purple-500/20 px-3 py-1 rounded-full">Interactive Quiz</span>
+    <span class="text-xs text-slate-400">Verificação Instantânea</span>
+  </div>
+  <h2 class="text-xl font-extrabold mb-2">Diplomatic Language in Business English</h2>
+  <p class="text-sm text-slate-300 mb-6">Choose the most diplomatic conditional concession formula:</p>
+  
+  <div class="space-y-3" id="quiz-options">
+    <button onclick="checkAnswer(0)" class="w-full text-left p-4 rounded-xl bg-slate-800 hover:bg-slate-750 border border-slate-700 text-sm transition-all option-btn">
+      A) "We want a 15% discount or we cancel the contract."
+    </button>
+    <button onclick="checkAnswer(1)" class="w-full text-left p-4 rounded-xl bg-slate-800 hover:bg-slate-750 border border-slate-700 text-sm transition-all option-btn">
+      B) "Provided that delivery is accelerated, we would be positioned to consider your standard volume tier."
+    </button>
+    <button onclick="checkAnswer(2)" class="w-full text-left p-4 rounded-xl bg-slate-800 hover:bg-slate-750 border border-slate-700 text-sm transition-all option-btn">
+      C) "Give us free onboarding and maybe we sign."
+    </button>
+  </div>
+  
+  <div id="feedback" class="mt-4 p-4 rounded-xl text-sm hidden font-medium"></div>
+
+  <script>
+    function checkAnswer(index) {
+      const fb = document.getElementById('feedback');
+      const buttons = document.querySelectorAll('.option-btn');
+      buttons.forEach(b => b.classList.remove('border-emerald-500', 'border-rose-500', 'bg-emerald-950/40', 'bg-rose-950/40'));
+      fb.classList.remove('hidden', 'bg-emerald-900/40', 'text-emerald-300', 'border-emerald-500/40', 'bg-rose-900/40', 'text-rose-300', 'border-rose-500/40');
+      
+      if (index === 1) {
+        buttons[1].classList.add('border-emerald-500', 'bg-emerald-950/40');
+        fb.className = 'mt-4 p-4 rounded-xl text-sm font-semibold bg-emerald-900/40 text-emerald-300 border border-emerald-500/40 block';
+        fb.innerHTML = '🎉 <strong>Correto!</strong> O uso de <em>"Provided that..."</em> com o condicional <em>"we would be positioned to consider..."</em> estabelece uma concessão diplomática firme e sem atrito.';
+      } else {
+        buttons[index].classList.add('border-rose-500', 'bg-rose-950/40');
+        fb.className = 'mt-4 p-4 rounded-xl text-sm font-semibold bg-rose-900/40 text-rose-300 border border-rose-500/40 block';
+        fb.innerHTML = '❌ <strong>Incorreto.</strong> Linguagem muito agressiva ou informal para negociação corporativa B2. Tente a opção B.';
+      }
+    }
+  </script>
+</div>`
+                })}
+                className="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-purple-300 font-semibold"
+              >
+                + Quiz com Pontuação
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setLessonData({
+                  ...lessonData,
+                  custom_html: `<div class="max-w-2xl mx-auto p-6 bg-slate-900 text-white rounded-2xl border border-slate-800 font-sans shadow-xl">
+  <div class="inline-block text-xs font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full mb-3">Gap-Fill Challenge</div>
+  <h3 class="text-lg font-bold mb-2">Preencha as Lacunas com as Palavras Corretas</h3>
+  <p class="text-xs text-slate-400 mb-6">Complete a frase de negociação usando: <strong>anchoring, concession</strong>.</p>
+  
+  <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 text-sm leading-relaxed mb-4">
+    "Setting an ambitious opening offer allows the negotiator to establish clear 
+    <input id="blank1" type="text" placeholder="..." class="bg-slate-800 border border-slate-700 px-2 py-1 rounded text-purple-300 font-mono text-center w-28 mx-1 focus:outline-none focus:border-purple-500"> 
+    before making any conditional 
+    <input id="blank2" type="text" placeholder="..." class="bg-slate-800 border border-slate-700 px-2 py-1 rounded text-purple-300 font-mono text-center w-28 mx-1 focus:outline-none focus:border-purple-500">."
+  </div>
+
+  <div class="flex items-center space-x-2">
+    <button onclick="verifyBlanks()" class="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition-all shadow-md">
+      Verificar Resposta
+    </button>
+    <button onclick="resetBlanks()" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold">
+      Limpar
+    </button>
+  </div>
+
+  <div id="blank-result" class="mt-4 p-3 rounded-xl text-xs hidden"></div>
+
+  <script>
+    function verifyBlanks() {
+      const b1 = document.getElementById('blank1').value.trim().toLowerCase();
+      const b2 = document.getElementById('blank2').value.trim().toLowerCase();
+      const res = document.getElementById('blank-result');
+      
+      const correct1 = b1 === 'anchoring' || b1 === 'leverage';
+      const correct2 = b2 === 'concession';
+      
+      res.classList.remove('hidden');
+      if (correct1 && correct2) {
+        res.className = 'mt-4 p-3 rounded-xl text-xs bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 font-bold block';
+        res.innerHTML = '✅ Parabéns! Respostas corretas: anchoring e concession.';
+      } else {
+        res.className = 'mt-4 p-3 rounded-xl text-xs bg-rose-950/60 border border-rose-500/40 text-rose-300 font-bold block';
+        res.innerHTML = '⚠️ Quase lá! Dica: a primeira lacuna é "anchoring" e a segunda é "concession".';
+      }
+    }
+    function resetBlanks() {
+      document.getElementById('blank1').value = '';
+      document.getElementById('blank2').value = '';
+      document.getElementById('blank-result').classList.add('hidden');
+    }
+  </script>
+</div>`
+                })}
+                className="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-300 font-semibold"
+              >
+                + Lacunas com Verificação
+              </button>
             </div>
 
             <textarea
               rows={18}
               value={lessonData.custom_html || ''}
               onChange={(e) => setLessonData({ ...lessonData, custom_html: e.target.value })}
-              placeholder="<!-- Digite ou cole seu HTML aqui. Classes Tailwind são suportadas diretamente -->"
+              placeholder="<!-- Cole aqui qualquer código HTML/CSS/JS. Ex: botões interativos, jogos, Canva, Genially ou tabelas -->"
               className="w-full font-mono text-xs bg-slate-950 border border-slate-800 rounded-xl p-4 text-emerald-300 focus:outline-none focus:border-purple-500 leading-relaxed"
             />
           </div>
         )}
 
-        {/* MODO 3: PRÉVIA EM TEMPO REAL */}
+        {/* MODO 3: PRÉVIA E TESTE DA AULA NO VISUALIZADOR SANDBOX */}
         {studioMode === 'preview' && (
-          <div className="rounded-3xl bg-slate-900 border border-slate-800 p-6 sm:p-8 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4 mb-6">
-              <div className="flex items-center space-x-2">
-                <span className="text-xs font-black px-3 py-1 rounded-full bg-purple-600/20 text-purple-300 border border-purple-500/30">
-                  {lessonData.cefr_level}
+          <div className="space-y-6">
+            <div className="flex items-center justify-between flex-wrap gap-3 bg-slate-900 border border-slate-800 p-4 rounded-2xl">
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
+                  Visualizador Seguro & Testador de Interatividades
                 </span>
-                <h3 className="text-xl font-bold text-white">{lessonData.title}</h3>
+                <h3 className="text-lg font-bold text-white mt-1">{lessonData.title}</h3>
               </div>
 
-              <div className="flex items-center space-x-2 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs">
+              <div className="flex items-center space-x-2">
                 <button
-                  onClick={() => setPreviewTab('teacher')}
-                  className={`px-3 py-1 rounded-lg font-bold ${
-                    previewTab === 'teacher' ? 'bg-purple-600 text-white' : 'text-slate-400'
-                  }`}
+                  onClick={() => setStudioMode('code')}
+                  className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center space-x-1"
                 >
-                  Visão do Professor
+                  <Code className="w-3.5 h-3.5 text-purple-400" />
+                  <span>Editar Código</span>
                 </button>
                 <button
-                  onClick={() => setPreviewTab('student')}
-                  className={`px-3 py-1 rounded-lg font-bold ${
-                    previewTab === 'student' ? 'bg-purple-600 text-white' : 'text-slate-400'
-                  }`}
+                  onClick={() => setStudioMode('visual')}
+                  className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center space-x-1"
                 >
-                  Visão do Aluno
+                  <Layout className="w-3.5 h-3.5 text-blue-400" />
+                  <span>Editar Metadados & Links</span>
                 </button>
               </div>
             </div>
 
-            {lessonData.custom_html ? (
-              <div
-                className="prose prose-invert max-w-none"
-                dangerouslySetInnerHTML={{ __html: lessonData.custom_html }}
-              />
-            ) : previewTab === 'teacher' ? (
-              <div className="space-y-4 text-xs sm:text-sm">
-                <div className="p-4 rounded-xl bg-purple-950/20 border border-purple-500/30">
-                  <h4 className="font-bold text-purple-300 mb-1">Warm-up (Aquecimento):</h4>
-                  <p className="text-slate-200">{lessonData.teacher_version.warmup}</p>
-                </div>
-                <div className="p-4 rounded-xl bg-slate-950 border border-slate-800">
-                  <h4 className="font-bold text-purple-300 mb-1">Apresentação:</h4>
-                  <p className="text-slate-200">{lessonData.teacher_version.presentation}</p>
-                </div>
-                <div className="p-4 rounded-xl bg-slate-950 border border-slate-800">
-                  <h4 className="font-bold text-purple-300 mb-1">Produção Livre:</h4>
-                  <p className="text-slate-200">{lessonData.teacher_version.communicative_practice}</p>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-4 text-xs sm:text-sm">
-                <div className="p-4 rounded-xl bg-slate-950 border border-slate-800">
-                  <h4 className="font-bold text-indigo-300 mb-1">Texto de Leitura:</h4>
-                  <p className="text-slate-200">{lessonData.student_version.reading_text}</p>
-                </div>
-                <div className="p-4 rounded-xl bg-slate-950 border border-slate-800">
-                  <h4 className="font-bold text-indigo-300 mb-1">Exercícios Gramaticais:</h4>
-                  <p className="text-slate-200">{lessonData.student_version.grammar_exercises}</p>
-                </div>
-              </div>
-            )}
+            {/* Visualizador Sandbox Interativo que não vaza estilos nem scripts */}
+            <InteractiveHtmlViewer
+              htmlCode={lessonData.custom_html || `<div class="p-8 text-center"><h2 class="text-xl font-bold text-white">${lessonData.title}</h2><p class="text-slate-400 mt-2">${lessonData.summary}</p><div class="mt-6 p-4 bg-slate-800 rounded-xl text-left"><h4 class="font-bold text-purple-300">Warm-up:</h4><p class="text-slate-300 text-sm mt-1">${lessonData.teacher_version.warmup}</p></div></div>`}
+              title={`Prévia: ${lessonData.title}`}
+              heightClass="h-[620px]"
+            />
           </div>
         )}
       </div>

@@ -126,7 +126,7 @@ export const getStoredUser = (): UserProfile => {
   } catch (e) {
     console.error('Failed to parse stored user', e);
   }
-  return DEFAULT_TEACHER_USER;
+  return DEFAULT_TRIAL_USER;
 };
 
 export const setStoredUser = (user: UserProfile | null) => {

@@ -76,6 +76,99 @@ export const INITIAL_LESSONS: Lesson[] = [
     published_at: '2026-11-01T10:00:00Z',
     view_count: 342,
     download_count: 189,
+    drive_url: 'https://drive.google.com/drive/folders/fluent-immersion-b2-negotiations',
+    slides_url: 'https://docs.google.com/presentation/d/e/2PACX-1vS-fluent-b2-negotiations-deck/pub',
+    youtube_url: 'https://www.youtube.com/watch?v=r0XgqS87r0A',
+    custom_html: `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #f8fafc; padding: 24px; border-radius: 18px; max-width: 680px; margin: 0 auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+  <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #334155; padding-bottom:12px; margin-bottom:20px;">
+    <div>
+      <span style="font-size:11px; font-weight:800; color:#a855f7; text-transform:uppercase; letter-spacing:1px;">FLUENT IMMERSION • B2 Business English</span>
+      <h2 style="margin:4px 0 0; font-size:20px; font-weight:800; color:#ffffff;">Simulador de Negociação Estratégica</h2>
+    </div>
+    <div style="text-align:right;">
+      <span id="score" style="background:#8b5cf6; color:white; font-size:13px; font-weight:800; padding:6px 12px; border-radius:12px; display:inline-block;">Leverage: 100%</span>
+    </div>
+  </div>
+
+  <div style="background:#1e293b; padding:16px; border-radius:14px; margin-bottom:20px; border-left:4px solid #a855f7;">
+    <div style="font-size:11px; color:#94a3b8; font-weight:700; text-transform:uppercase;">Cenário do Cliente:</div>
+    <p style="margin:6px 0 0; font-size:14px; color:#e2e8f0; line-height:1.5;">
+      <em>"Seu preço anual é R$ 120.000. Nosso orçamento máximo aprovado pela diretoria é R$ 100.000. Se não puder fechar por R$ 100.000, teremos que assinar com seu concorrente."</em>
+    </p>
+  </div>
+
+  <div style="margin-bottom:18px;">
+    <label style="font-size:12px; font-weight:700; color:#cbd5e1; display:block; margin-bottom:8px;">Qual a melhor resposta diplomática e condicional?</label>
+    
+    <button onclick="chooseOption(1)" style="width:100%; text-align:left; background:#1e293b; border:1px solid #334155; color:#f1f5f9; padding:12px 16px; border-radius:12px; margin-bottom:8px; cursor:pointer; font-size:13px; transition:0.2s;" onmouseover="this.style.borderColor='#a855f7'" onmouseout="this.style.borderColor='#334155'">
+      A) "Okay, we can accept R$ 100.000 if you sign today."
+    </button>
+    
+    <button onclick="chooseOption(2)" style="width:100%; text-align:left; background:#1e293b; border:1px solid #334155; color:#f1f5f9; padding:12px 16px; border-radius:12px; margin-bottom:8px; cursor:pointer; font-size:13px; transition:0.2s;" onmouseover="this.style.borderColor='#a855f7'" onmouseout="this.style.borderColor='#334155'">
+      B) "Provided that we scale the contract to a 24-month term and standard support SLA, we might be positioned to consider your budget target."
+    </button>
+
+    <button onclick="chooseOption(3)" style="width:100%; text-align:left; background:#1e293b; border:1px solid #334155; color:#f1f5f9; padding:12px 16px; border-radius:12px; margin-bottom:8px; cursor:pointer; font-size:13px; transition:0.2s;" onmouseover="this.style.borderColor='#a855f7'" onmouseout="this.style.borderColor='#334155'">
+      C) "No way, our product is much superior to the competition."
+    </button>
+  </div>
+
+  <div id="feedback" style="display:none; padding:14px; border-radius:12px; font-size:13px; line-height:1.4; margin-bottom:16px;"></div>
+
+  <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid #334155; padding-top:14px;">
+    <button onclick="speakFormula()" style="background:#334155; color:#e2e8f0; border:none; padding:8px 14px; border-radius:10px; font-size:12px; cursor:pointer; font-weight:600; display:inline-flex; align-items:center; gap:6px;">
+      🔊 Ouvir Frase em Inglês Nativo
+    </button>
+    <button onclick="resetSim()" style="background:transparent; color:#94a3b8; border:1px solid #475569; padding:8px 14px; border-radius:10px; font-size:12px; cursor:pointer;">
+      🔄 Reiniciar
+    </button>
+  </div>
+
+  <script>
+    function chooseOption(num) {
+      const fb = document.getElementById('feedback');
+      const sc = document.getElementById('score');
+      fb.style.display = 'block';
+      if (num === 2) {
+        fb.style.background = '#064e3b';
+        fb.style.color = '#a7f3d0';
+        fb.style.border = '1px solid #059669';
+        fb.innerHTML = '<strong>Excelente! Resposta de Alto Nível (B2/C1).</strong> Você ancorou uma contrapartida de 24 meses para conceder o desconto, mantendo margem e autoridade!';
+        sc.innerText = 'Leverage: 150% (Vitória!)';
+        sc.style.background = '#10b981';
+      } else if (num === 1) {
+        fb.style.background = '#7f1d1d';
+        fb.style.color = '#fecaca';
+        fb.style.border = '1px solid #dc2626';
+        fb.innerHTML = '<strong>Cuidado: Você cedeu R$ 20.000 sem pedir nada em troca!</strong> Em Business English, nunca reduza o preço sem negociar prazo ou volume.';
+        sc.innerText = 'Leverage: 50% (Perdeu margem)';
+        sc.style.background = '#ef4444';
+      } else {
+        fb.style.background = '#7f1d1d';
+        fb.style.color = '#fecaca';
+        fb.style.border = '1px solid #dc2626';
+        fb.innerHTML = '<strong>Muito agressivo!</strong> Rompe o relacionamento profissional com o cliente.';
+        sc.innerText = 'Leverage: 0% (Impasse)';
+        sc.style.background = '#ef4444';
+      }
+    }
+
+    function speakFormula() {
+      if ('speechSynthesis' in window) {
+        const u = new SpeechSynthesisUtterance("Provided that we scale to a 24 month term, we might be positioned to consider your budget target.");
+        u.lang = 'en-US';
+        u.rate = 0.9;
+        window.speechSynthesis.speak(u);
+      }
+    }
+
+    function resetSim() {
+      document.getElementById('feedback').style.display = 'none';
+      document.getElementById('score').innerText = 'Leverage: 100%';
+      document.getElementById('score').style.background = '#8b5cf6';
+    }
+  </script>
+</div>`,
     teacher_version: {
       warmup: 'Ask students: "When was the last time you negotiated a price, contract, or deadline? Did you achieve your goal, or did you give away too much too soon?" (5 mins)',
       lead_in: 'Display three common negotiation scenarios on screen: 1) Salary increase, 2) Software vendor renewal, 3) Real estate purchase. Ask pairs to rank them by psychological difficulty and identify who holds leverage. (10 mins)',
@@ -459,6 +552,103 @@ export const INITIAL_LESSONS: Lesson[] = [
     published_at: '2026-11-04T08:00:00Z',
     view_count: 820,
     download_count: 590,
+    drive_url: 'https://drive.google.com/drive/folders/fluent-immersion-a1-first-day-pack',
+    slides_url: 'https://docs.google.com/presentation/d/e/2PACX-1vS-fluent-a1-icebreaker/pub',
+    youtube_url: 'https://www.youtube.com/watch?v=Fw0rdSHzWFY',
+    custom_html: `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #f8fafc; padding: 24px; border-radius: 18px; max-width: 680px; margin: 0 auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+  <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #334155; padding-bottom:12px; margin-bottom:20px;">
+    <div>
+      <span style="font-size:11px; font-weight:800; color:#10b981; text-transform:uppercase; letter-spacing:1px;">FLUENT IMMERSION • Nível A1 Iniciante</span>
+      <h2 style="margin:4px 0 0; font-size:20px; font-weight:800; color:#ffffff;">Prática Interativa: Saudações & To Be</h2>
+    </div>
+    <span id="score-a1" style="background:#10b981; color:white; font-size:13px; font-weight:800; padding:6px 12px; border-radius:12px;">Acertos: 0/3</span>
+  </div>
+
+  <div style="background:#1e293b; padding:16px; border-radius:14px; margin-bottom:20px;">
+    <p style="margin:0; font-size:13px; color:#cbd5e1;">
+      Clique no cumprimento correto para o horário do dia indicado:
+    </p>
+  </div>
+
+  <div>
+    <div style="margin-bottom:16px;">
+      <p style="font-size:13px; font-weight:700; color:#f8fafc; margin-bottom:8px;">1. São 08:30 da manhã. O que você diz ao entrar na sala?</p>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button onclick="checkA1(1, 'a', this)" style="background:#334155; color:white; border:none; padding:10px 16px; border-radius:10px; cursor:pointer; font-size:13px; transition:0.2s;">Good morning! ☀️</button>
+        <button onclick="checkA1(1, 'b', this)" style="background:#334155; color:white; border:none; padding:10px 16px; border-radius:10px; cursor:pointer; font-size:13px; transition:0.2s;">Good evening! 🌙</button>
+        <button onclick="checkA1(1, 'c', this)" style="background:#334155; color:white; border:none; padding:10px 16px; border-radius:10px; cursor:pointer; font-size:13px; transition:0.2s;">Good night! 😴</button>
+      </div>
+    </div>
+
+    <div style="margin-bottom:16px;">
+      <p style="font-size:13px; font-weight:700; color:#f8fafc; margin-bottom:8px;">2. Complete a frase: "Hello, I _____ your English teacher."</p>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button onclick="checkA1(2, 'a', this)" style="background:#334155; color:white; border:none; padding:10px 16px; border-radius:10px; cursor:pointer; font-size:13px; transition:0.2s;">is</button>
+        <button onclick="checkA1(2, 'b', this)" style="background:#334155; color:white; border:none; padding:10px 16px; border-radius:10px; cursor:pointer; font-size:13px; transition:0.2s;">am</button>
+        <button onclick="checkA1(2, 'c', this)" style="background:#334155; color:white; border:none; padding:10px 16px; border-radius:10px; cursor:pointer; font-size:13px; transition:0.2s;">are</button>
+      </div>
+    </div>
+
+    <div style="margin-bottom:16px;">
+      <p style="font-size:13px; font-weight:700; color:#f8fafc; margin-bottom:8px;">3. Complete: "Where _____ you from?"</p>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button onclick="checkA1(3, 'a', this)" style="background:#334155; color:white; border:none; padding:10px 16px; border-radius:10px; cursor:pointer; font-size:13px; transition:0.2s;">are</button>
+        <button onclick="checkA1(3, 'b', this)" style="background:#334155; color:white; border:none; padding:10px 16px; border-radius:10px; cursor:pointer; font-size:13px; transition:0.2s;">am</button>
+        <button onclick="checkA1(3, 'c', this)" style="background:#334155; color:white; border:none; padding:10px 16px; border-radius:10px; cursor:pointer; font-size:13px; transition:0.2s;">is</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="feedback-a1" style="display:none; padding:14px; border-radius:12px; font-size:13px; margin-top:16px; border:1px solid #059669; background:#064e3b; color:#a7f3d0;">
+    🎉 <strong>Parabéns!</strong> Você dominou as saudações e o verbo To Be desta primeira aula!
+  </div>
+
+  <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid #334155; padding-top:14px; margin-top:16px;">
+    <button onclick="speakA1()" style="background:#334155; color:#e2e8f0; border:none; padding:8px 14px; border-radius:10px; font-size:12px; cursor:pointer; font-weight:600;">
+      🔊 Ouvir Áudio Nativo
+    </button>
+    <button onclick="location.reload()" style="background:transparent; color:#94a3b8; border:1px solid #475569; padding:8px 14px; border-radius:10px; font-size:12px; cursor:pointer;">
+      🔄 Reiniciar
+    </button>
+  </div>
+
+  <script>
+    let correctCount = 0;
+    const answered = {};
+
+    function checkA1(q, opt, btn) {
+      if (answered[q]) return;
+      const parent = btn.parentElement;
+      const btns = parent.querySelectorAll('button');
+      const isCorrect = (q === 1 && opt === 'a') || (q === 2 && opt === 'b') || (q === 3 && opt === 'a');
+      
+      btns.forEach(b => b.style.opacity = '0.5');
+      if (isCorrect) {
+        btn.style.background = '#10b981';
+        btn.style.opacity = '1';
+        correctCount++;
+        answered[q] = true;
+      } else {
+        btn.style.background = '#ef4444';
+        btn.style.opacity = '1';
+        answered[q] = true;
+      }
+      document.getElementById('score-a1').innerText = 'Acertos: ' + correctCount + '/3';
+      if (correctCount === 3) {
+        document.getElementById('feedback-a1').style.display = 'block';
+      }
+    }
+
+    function speakA1() {
+      if ('speechSynthesis' in window) {
+        const u = new SpeechSynthesisUtterance("Good morning! Hello, I am your English teacher. Where are you from?");
+        u.lang = 'en-US';
+        u.rate = 0.85;
+        window.speechSynthesis.speak(u);
+      }
+    }
+  </script>
+</div>`,
     teacher_version: {
       warmup: 'Smile and write your name on the board: "Hello! My name is [Teacher Name]. I am your English teacher." Model the gesture of pointing to yourself. (5 mins)',
       lead_in: 'Choral repetition of greetings: Good morning (sun rising gesture), Good afternoon, Good evening, Hi, Hello. Contrast casual "Hey!" with professional "Good morning". (10 mins)',

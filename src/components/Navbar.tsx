@@ -212,7 +212,12 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
 
           {/* CTA Principal de Assinatura via Kiwify */}
-          {!isSubscribed ? (
+          {currentUser?.role === 'ADMIN' ? (
+            <div className="hidden sm:flex items-center space-x-1.5 px-3 py-1 rounded-full bg-orange-500/15 border border-orange-500/30 text-orange-600 dark:text-orange-400 text-xs font-bold">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>ADMIN GESTOR</span>
+            </div>
+          ) : !isSubscribed ? (
             <a
               href={KIWIFY_CHECKOUT_URL}
               target="_blank"

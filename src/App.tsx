@@ -204,7 +204,7 @@ export default function App() {
 
   const handleSwitchUserRole = (role: 'ADMIN' | 'TEACHER_MEMBER' | 'TRIAL') => {
     if (role === 'ADMIN') {
-      setCurrentUser(DEFAULT_ADMIN_USER);
+      setCurrentView('admin');
     } else if (role === 'TEACHER_MEMBER') {
       setCurrentUser(DEFAULT_TEACHER_USER);
     } else {
