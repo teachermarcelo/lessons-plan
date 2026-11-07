@@ -36,6 +36,7 @@ import { Lesson, UserProfile } from '../types/fluent';
 import { FlashcardPlayer } from './FlashcardPlayer';
 import { QuizRunner } from './QuizRunner';
 import { InteractiveHtmlViewer } from './InteractiveHtmlViewer';
+import { ClassroomProjectorModal } from './ClassroomProjectorModal';
 import { generateLessonPDF, PDFExportType } from '../lib/pdfGenerator';
 import { KIWIFY_CHECKOUT_URL, trackCheckoutLead } from '../lib/supabase';
 
@@ -85,6 +86,7 @@ export const TeacherLessonViewerPage: React.FC<TeacherLessonViewerPageProps> = (
   const [copiedLink, setCopiedLink] = useState(false);
   const [pdfMenuOpen, setPdfMenuOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isProjectorOpen, setIsProjectorOpen] = useState(false);
 
   // Audio / Speech Synthesis Player State (Estilo Ellii / 7ESL)
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
@@ -313,14 +315,14 @@ export const TeacherLessonViewerPage: React.FC<TeacherLessonViewerPageProps> = (
               <span>{copiedLink ? 'Copiado!' : 'Copiar link'}</span>
             </button>
 
-            {/* Modo Apresentação / Tela Cheia */}
+            {/* Modo Apresentação / Projetar Aula em Sala */}
             <button
-              onClick={toggleFullscreen}
-              className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white text-xs font-semibold hidden sm:flex items-center space-x-1 transition-all"
-              title="Modo Tela Cheia para Projetor ou Zoom"
+              onClick={() => setIsProjectorOpen(true)}
+              className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold flex items-center space-x-1.5 transition-all shadow-md shadow-purple-600/30 active:scale-95"
+              title="Abrir Modo Projeção de Sala de Aula (Slides 16:9, Cronômetro, Laser e Áudio Nativo)"
             >
-              {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
-              <span>{isFullscreen ? 'Sair Tela Cheia' : 'Projetar'}</span>
+              <Presentation className="w-3.5 h-3.5 text-purple-200" />
+              <span>Projetar Aula</span>
             </button>
 
             {/* Exportar PDF Dropdown */}
@@ -509,6 +511,17 @@ export const TeacherLessonViewerPage: React.FC<TeacherLessonViewerPageProps> = (
               <span>Materiais Prontos</span>
             </h4>
             <div className="space-y-2 text-xs">
+              <button
+                onClick={() => setIsProjectorOpen(true)}
+                className="w-full p-2.5 rounded-xl bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-900/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-500/30 flex items-center justify-between font-bold transition-all text-xs"
+              >
+                <div className="flex items-center space-x-2">
+                  <Presentation className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                  <span>Projetar em Sala (TV / Zoom)</span>
+                </div>
+                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              </button>
+
               <a
                 href={lesson.slides_url || 'https://docs.google.com/presentation'}
                 target="_blank"
@@ -1234,6 +1247,12 @@ export const TeacherLessonViewerPage: React.FC<TeacherLessonViewerPageProps> = (
           </div>
         </div>
       </footer>
+      {/* 4. MODAL / DECK DE PROJEÇÃO DE SALA DE AULA EM TELA CHEIA */}
+      <ClassroomProjectorModal
+        lesson={lesson}
+        isOpen={isProjectorOpen}
+        onClose={() => setIsProjectorOpen(false)}
+      />
     </div>
   );
 };
