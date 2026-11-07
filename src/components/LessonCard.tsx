@@ -1,50 +1,76 @@
 import React from 'react';
-import { Clock, Users, BookOpen, Heart, FileDown, Sparkles } from 'lucide-react';
+import { Clock, Users, BookOpen, Heart, FileDown, Lock, Crown, Star } from 'lucide-react';
 import { Lesson, CEFRLevelId } from '../types/fluent';
 
 interface LessonCardProps {
   lesson: Lesson;
   isFavorite: boolean;
+  isSubscribed: boolean;
+  isFreeSample?: boolean;
   onToggleFavorite: (id: string) => void;
   onOpenLesson: (lesson: Lesson) => void;
   onQuickDownloadPDF: (lesson: Lesson) => void;
 }
 
 const CEFR_BADGES: Record<CEFRLevelId, string> = {
-  A1: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
-  A2: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
-  B1: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
-  B2: 'bg-violet-500/20 text-violet-300 border-violet-500/30',
-  C1: 'bg-pink-500/20 text-pink-300 border-pink-500/30',
-  C2: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+  A1: 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30',
+  A2: 'bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 border-cyan-500/30',
+  B1: 'bg-blue-500/20 text-blue-700 dark:text-blue-300 border-blue-500/30',
+  B2: 'bg-violet-500/20 text-violet-700 dark:text-violet-300 border-violet-500/30',
+  C1: 'bg-pink-500/20 text-pink-700 dark:text-pink-300 border-pink-500/30',
+  C2: 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/30',
 };
 
 export const LessonCard: React.FC<LessonCardProps> = ({
   lesson,
   isFavorite,
+  isSubscribed,
+  isFreeSample = false,
   onToggleFavorite,
   onOpenLesson,
   onQuickDownloadPDF,
 }) => {
+  const isLocked = !isSubscribed && !isFreeSample;
+
   return (
-    <div className="group rounded-3xl bg-slate-900 border border-slate-800 hover:border-purple-500/50 shadow-md hover:shadow-2xl hover:shadow-purple-950/25 transition-all duration-300 overflow-hidden flex flex-col justify-between">
+    <div className={`group rounded-3xl bg-white dark:bg-slate-900 border ${
+      isFreeSample 
+        ? 'border-purple-400 dark:border-purple-500 shadow-lg shadow-purple-500/10' 
+        : 'border-slate-200 dark:border-slate-800'
+    } hover:border-purple-500 dark:hover:border-purple-500/50 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col justify-between`}>
+      
       {/* Banner Superior com Imagem & Selos */}
-      <div className="relative h-48 overflow-hidden bg-slate-950">
+      <div className="relative h-48 overflow-hidden bg-slate-100 dark:bg-slate-950">
         <img
           src={lesson.cover_image_url || 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=800&q=80'}
           alt={lesson.title}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90 group-hover:opacity-100"
+          className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ${
+            isLocked ? 'opacity-75 blur-[0.4px]' : 'opacity-95'
+          }`}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/30 to-transparent" />
 
         {/* Selos de Nível e Departamento */}
-        <div className="absolute top-3.5 left-3.5 flex items-center space-x-1.5">
-          <span className={`text-[11px] font-black px-2.5 py-0.5 rounded-full border backdrop-blur-md ${CEFR_BADGES[lesson.cefr_level]}`}>
+        <div className="absolute top-3.5 left-3.5 flex flex-wrap items-center gap-1.5">
+          <span className={`text-[11px] font-black px-2.5 py-0.5 rounded-full border backdrop-blur-md bg-slate-950/70 text-white ${CEFR_BADGES[lesson.cefr_level]}`}>
             Nível {lesson.cefr_level}
           </span>
-          <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-slate-950/85 text-slate-200 border border-slate-700/80 backdrop-blur-md">
-            {lesson.department}
-          </span>
+
+          {isFreeSample ? (
+            <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-emerald-500 text-white shadow-md flex items-center space-x-1 animate-pulse">
+              <Star className="w-3 h-3 fill-white" />
+              <span>AULA GRATUITA (DEMO)</span>
+            </span>
+          ) : isLocked ? (
+            <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-orange-600/90 text-white backdrop-blur-md flex items-center space-x-1 shadow-sm">
+              <Lock className="w-2.5 h-2.5" />
+              <span>EXCLUSIVO TEACHERS</span>
+            </span>
+          ) : (
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-950/80 text-slate-200 border border-slate-700/80 backdrop-blur-md">
+              {lesson.department}
+            </span>
+          )}
         </div>
 
         {/* Botão Favoritar */}
@@ -53,19 +79,19 @@ export const LessonCard: React.FC<LessonCardProps> = ({
             e.stopPropagation();
             onToggleFavorite(lesson.id);
           }}
-          className="absolute top-3.5 right-3.5 p-2 rounded-full bg-slate-950/75 hover:bg-slate-900 text-slate-300 hover:text-rose-400 border border-slate-700/60 backdrop-blur-md transition-all active:scale-90"
+          className="absolute top-3.5 right-3.5 p-2 rounded-full bg-slate-950/70 hover:bg-slate-900 text-white hover:text-rose-400 border border-slate-700/60 backdrop-blur-md transition-all active:scale-90"
           title={isFavorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
         >
           <Heart className={`w-4 h-4 ${isFavorite ? 'fill-rose-500 text-rose-500' : ''}`} />
         </button>
 
         {/* Metadados: Duração e Público */}
-        <div className="absolute bottom-2.5 left-3.5 right-3.5 flex items-center justify-between text-[11px] text-slate-300 font-semibold">
-          <span className="flex items-center space-x-1 bg-slate-950/70 px-2 py-0.5 rounded-md backdrop-blur-sm border border-slate-800">
+        <div className="absolute bottom-2.5 left-3.5 right-3.5 flex items-center justify-between text-[11px] text-slate-200 font-semibold">
+          <span className="flex items-center space-x-1 bg-slate-950/75 px-2 py-0.5 rounded-md backdrop-blur-sm border border-slate-800">
             <Clock className="w-3.5 h-3.5 text-purple-400" />
             <span>{lesson.duration_minutes} min</span>
           </span>
-          <span className="flex items-center space-x-1 bg-slate-950/70 px-2 py-0.5 rounded-md backdrop-blur-sm border border-slate-800">
+          <span className="flex items-center space-x-1 bg-slate-950/75 px-2 py-0.5 rounded-md backdrop-blur-sm border border-slate-800">
             <Users className="w-3.5 h-3.5 text-purple-400" />
             <span>{lesson.age_group}</span>
           </span>
@@ -77,11 +103,11 @@ export const LessonCard: React.FC<LessonCardProps> = ({
         <div>
           <h4
             onClick={() => onOpenLesson(lesson)}
-            className="text-base font-bold text-white group-hover:text-purple-300 transition-colors line-clamp-2 cursor-pointer mb-2"
+            className="text-base font-bold text-slate-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-300 transition-colors line-clamp-2 cursor-pointer mb-2"
           >
             {lesson.title}
           </h4>
-          <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed mb-4">
+          <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed mb-4">
             {lesson.summary}
           </p>
 
@@ -90,7 +116,7 @@ export const LessonCard: React.FC<LessonCardProps> = ({
             {lesson.tags.slice(0, 3).map((tag, i) => (
               <span
                 key={i}
-                className="text-[10px] px-2 py-0.5 rounded-md bg-slate-800/80 text-slate-300 border border-slate-700/60"
+                className="text-[10px] px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60"
               >
                 #{tag}
               </span>
@@ -99,21 +125,43 @@ export const LessonCard: React.FC<LessonCardProps> = ({
         </div>
 
         {/* Botões de Ação */}
-        <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between gap-2">
-          <button
-            onClick={() => onOpenLesson(lesson)}
-            className="flex-1 bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white font-bold text-xs py-2.5 px-3 rounded-xl transition-all flex items-center justify-center space-x-1.5 shadow-md shadow-purple-600/20"
-          >
-            <BookOpen className="w-3.5 h-3.5" />
-            <span>Abrir Aula</span>
-          </button>
+        <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-2">
+          {isLocked ? (
+            <button
+              onClick={() => onOpenLesson(lesson)}
+              className="flex-1 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 active:scale-98 text-white font-black text-xs py-2.5 px-3 rounded-xl transition-all flex items-center justify-center space-x-1.5 shadow-md shadow-orange-500/20"
+            >
+              <Lock className="w-3.5 h-3.5" />
+              <span>Desbloquear Aula</span>
+            </button>
+          ) : isFreeSample ? (
+            <button
+              onClick={() => onOpenLesson(lesson)}
+              className="flex-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-extrabold text-xs py-2.5 px-3 rounded-xl transition-all flex items-center justify-center space-x-1.5 shadow-md shadow-emerald-600/20"
+            >
+              <Star className="w-3.5 h-3.5 fill-white" />
+              <span>Abrir Aula Gratuita</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => onOpenLesson(lesson)}
+              className="flex-1 bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white font-bold text-xs py-2.5 px-3 rounded-xl transition-all flex items-center justify-center space-x-1.5 shadow-md shadow-purple-600/20"
+            >
+              <BookOpen className="w-3.5 h-3.5" />
+              <span>Acessar Materiais</span>
+            </button>
+          )}
 
           <button
             onClick={() => onQuickDownloadPDF(lesson)}
-            className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-all"
-            title="Baixar PDF A4"
+            className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 hover:text-purple-600 dark:hover:text-white border border-slate-200 dark:border-slate-700 transition-all"
+            title={isLocked ? 'Disponível para assinantes' : 'Baixar PDF A4'}
           >
-            <FileDown className="w-4 h-4 text-purple-400" />
+            {isLocked ? (
+              <Lock className="w-4 h-4 text-orange-500" />
+            ) : (
+              <FileDown className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+            )}
           </button>
         </div>
       </div>

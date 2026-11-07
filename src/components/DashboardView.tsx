@@ -2,29 +2,24 @@ import React, { useState, useMemo } from 'react';
 import { 
   BookOpen, 
   Search, 
-  Filter, 
   Crown, 
   Briefcase, 
   Baby, 
   Layers, 
   Heart, 
-  FileDown, 
-  Sparkles, 
   ShieldCheck, 
   CreditCard, 
-  ChevronRight, 
   Clock, 
-  TrendingUp,
-  FolderPlus,
-  HelpCircle,
-  Plus,
+  Lock, 
+  Star,
   ExternalLink,
-  Lock,
-  Unlock
+  HelpCircle,
+  Sparkles
 } from 'lucide-react';
-import { Lesson, UserProfile, CEFRLevelId, DepartmentType, Collection } from '../types/fluent';
+import { Lesson, UserProfile, Collection } from '../types/fluent';
 import { LessonCard } from './LessonCard';
-import { KIWIFY_CHECKOUT_URL } from '../lib/supabase';
+import { PaywallModal } from './PaywallModal';
+import { KIWIFY_CHECKOUT_URL, FREE_SAMPLE_LESSON_ID } from '../lib/supabase';
 
 interface DashboardViewProps {
   currentUser: UserProfile;
@@ -58,6 +53,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [selectedCefr, setSelectedCefr] = useState<string>('ALL');
   const [selectedDept, setSelectedDept] = useState<string>('ALL');
   const [sortBy, setSortBy] = useState<'newest' | 'popular' | 'level'>('newest');
+  const [paywallLesson, setPaywallLesson] = useState<Lesson | null>(null);
 
   const isSubscribed = currentUser.subscription_status === 'active' || currentUser.role === 'ADMIN';
 
@@ -102,33 +98,56 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
       return true;
     }).sort((a, b) => {
+      // Keep the free sample lesson visible at top if visitor is on 'all'
+      if (!isSubscribed && activeSidebar === 'all') {
+        if (a.id === FREE_SAMPLE_LESSON_ID) return -1;
+        if (b.id === FREE_SAMPLE_LESSON_ID) return 1;
+      }
       if (sortBy === 'popular') return b.download_count - a.download_count;
       if (sortBy === 'level') return a.cefr_level.localeCompare(b.cefr_level);
       return new Date(b.published_at).getTime() - new Date(a.published_at).getTime();
     });
-  }, [lessons, activeSidebar, selectedDept, selectedCefr, searchQuery, sortBy, favorites]);
+  }, [lessons, activeSidebar, selectedDept, selectedCefr, searchQuery, sortBy, favorites, isSubscribed]);
+
+  const handleCardClick = (lesson: Lesson) => {
+    if (!isSubscribed && lesson.id !== FREE_SAMPLE_LESSON_ID) {
+      setPaywallLesson(lesson);
+      return;
+    }
+    onOpenLesson(lesson);
+  };
+
+  const handleDownloadPDFClick = (lesson: Lesson) => {
+    if (!isSubscribed) {
+      setPaywallLesson(lesson);
+      return;
+    }
+    onQuickDownloadPDF(lesson);
+  };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white flex flex-col md:flex-row">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white flex flex-col md:flex-row transition-colors">
       {/* 1. BARRA LATERAL (SIDEBAR) */}
-      <aside className="w-full md:w-64 lg:w-72 bg-slate-950 border-r border-slate-800/80 p-4 flex flex-col justify-between flex-shrink-0">
+      <aside className="w-full md:w-64 lg:w-72 bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800/80 p-4 flex flex-col justify-between flex-shrink-0">
         <div className="space-y-6">
           {/* Card do Perfil do Usuário */}
-          <div className="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 flex items-center space-x-3">
+          <div className="p-3.5 rounded-2xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center space-x-3">
             <img
               src={currentUser.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80'}
               alt={currentUser.full_name}
               className="w-10 h-10 rounded-full object-cover border border-purple-500/40"
             />
             <div className="overflow-hidden">
-              <h4 className="text-xs font-bold text-white truncate">{currentUser.full_name}</h4>
+              <h4 className="text-xs font-bold text-slate-900 dark:text-white truncate">{currentUser.full_name}</h4>
               <div className="flex items-center space-x-1.5 mt-0.5">
                 <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-                  isSubscribed ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'
+                  isSubscribed 
+                    ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400' 
+                    : 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400'
                 }`}>
                   {isSubscribed ? 'MEMBRO PRO' : 'VISITANTE'}
                 </span>
-                <span className="text-[10px] text-slate-400 truncate">
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
                   {currentUser.role === 'ADMIN' ? 'Admin' : isSubscribed ? 'Ativo' : 'Exemplos'}
                 </span>
               </div>
@@ -137,7 +156,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
           {/* Menu Principal de Navegação */}
           <nav className="space-y-1 text-xs font-medium">
-            <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+            <div className="px-3 py-1 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
               Hub Pedagógico
             </div>
 
@@ -146,10 +165,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               className={`w-full text-left px-3 py-2 rounded-xl flex items-center space-x-2.5 transition-all ${
                 activeSidebar === 'all'
                   ? 'bg-purple-600 text-white font-bold shadow-md shadow-purple-600/30'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-900'
+                  : 'text-slate-700 dark:text-slate-300 hover:text-purple-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900'
               }`}
             >
-              <BookOpen className="w-4 h-4 text-purple-400" />
+              <BookOpen className="w-4 h-4 text-purple-600 dark:text-purple-400" />
               <span>Todos os Planos ({lessons.length})</span>
             </button>
 
@@ -158,10 +177,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               className={`w-full text-left px-3 py-2 rounded-xl flex items-center space-x-2.5 transition-all ${
                 activeSidebar === 'favorites'
                   ? 'bg-purple-600 text-white font-bold shadow-md shadow-purple-600/30'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-900'
+                  : 'text-slate-700 dark:text-slate-300 hover:text-purple-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900'
               }`}
             >
-              <Heart className="w-4 h-4 text-rose-400" />
+              <Heart className="w-4 h-4 text-rose-500" />
               <span>Meus Favoritos ({favorites.length})</span>
             </button>
 
@@ -170,10 +189,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               className={`w-full text-left px-3 py-2 rounded-xl flex items-center space-x-2.5 transition-all ${
                 activeSidebar === 'business'
                   ? 'bg-purple-600 text-white font-bold shadow-md shadow-purple-600/30'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-900'
+                  : 'text-slate-700 dark:text-slate-300 hover:text-purple-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900'
               }`}
             >
-              <Briefcase className="w-4 h-4 text-violet-400" />
+              <Briefcase className="w-4 h-4 text-violet-500" />
               <span>Business English</span>
             </button>
 
@@ -182,10 +201,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               className={`w-full text-left px-3 py-2 rounded-xl flex items-center space-x-2.5 transition-all ${
                 activeSidebar === 'kids'
                   ? 'bg-purple-600 text-white font-bold shadow-md shadow-purple-600/30'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-900'
+                  : 'text-slate-700 dark:text-slate-300 hover:text-purple-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900'
               }`}
             >
-              <Baby className="w-4 h-4 text-amber-400" />
+              <Baby className="w-4 h-4 text-amber-500" />
               <span>Inglês para Crianças (Kids)</span>
             </button>
 
@@ -194,16 +213,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               className={`w-full text-left px-3 py-2 rounded-xl flex items-center space-x-2.5 transition-all ${
                 activeSidebar === 'grammar'
                   ? 'bg-purple-600 text-white font-bold shadow-md shadow-purple-600/30'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-900'
+                  : 'text-slate-700 dark:text-slate-300 hover:text-purple-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900'
               }`}
             >
-              <Layers className="w-4 h-4 text-blue-400" />
+              <Layers className="w-4 h-4 text-blue-500" />
               <span>Laboratório de Gramática</span>
             </button>
 
             {/* Filtros de Níveis CEFR */}
-            <div className="pt-3 px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-              Níveis do Quadro Europeu (CEFR)
+            <div className="pt-3 px-3 py-1 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+              Trilha Geral CEFR (A1 a C2)
             </div>
 
             <div className="grid grid-cols-3 gap-1.5 px-2">
@@ -214,7 +233,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   className={`py-1.5 rounded-lg text-center font-bold text-xs transition-all border ${
                     activeSidebar === lvl
                       ? 'bg-purple-600 text-white border-purple-500 shadow-md'
-                      : 'bg-slate-900 text-slate-300 border-slate-800 hover:border-slate-700'
+                      : 'bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-purple-400'
                   }`}
                 >
                   {lvl}
@@ -222,40 +241,29 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               ))}
             </div>
 
-            {/* Ferramentas de Criação */}
-            <div className="pt-3 px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-              Ferramentas do Professor
+            {/* Acesso Admin */}
+            <div className="pt-4">
+              <button
+                onClick={onOpenAdmin}
+                className="w-full text-left px-3 py-2 rounded-xl flex items-center space-x-2 text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-500/30 hover:bg-orange-100 dark:hover:bg-orange-900/50 transition-all font-bold text-xs"
+              >
+                <ShieldCheck className="w-4 h-4 text-orange-500" />
+                <span>Painel Admin & Kiwify</span>
+              </button>
             </div>
-
-            <button
-              onClick={() => onOpenStudio()}
-              className="w-full text-left px-3 py-2 rounded-xl flex items-center justify-between text-purple-300 bg-purple-950/30 border border-purple-500/20 hover:bg-purple-900/40 transition-all font-semibold"
-            >
-              <div className="flex items-center space-x-2">
-                <Sparkles className="w-4 h-4 text-purple-400" />
-                <span>Estúdio HTML & IA</span>
-              </div>
-              <Plus className="w-3.5 h-3.5" />
-            </button>
-
-            <button
-              onClick={onOpenAdmin}
-              className="w-full text-left px-3 py-2 rounded-xl flex items-center space-x-2 text-orange-400 bg-orange-950/40 border border-orange-500/30 hover:bg-orange-900/50 transition-all font-bold text-xs"
-            >
-              <ShieldCheck className="w-4 h-4 text-orange-400" />
-              <span>Centro de Comando Admin</span>
-            </button>
           </nav>
         </div>
 
         {/* Rodapé da Barra Lateral */}
-        <div className="mt-6 pt-4 border-t border-slate-800">
-          <div className="p-3.5 rounded-2xl bg-gradient-to-br from-slate-900 to-purple-950/40 border border-purple-500/30">
+        <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-800">
+          <div className="p-3.5 rounded-2xl bg-gradient-to-br from-slate-100 to-purple-50 dark:from-slate-900 dark:to-purple-950/40 border border-purple-200 dark:border-purple-500/30">
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[10px] font-bold text-purple-400 uppercase tracking-wider">Assinatura Mensal</span>
-              <span className="text-xs font-bold text-white">R$ 19,90/mês</span>
+              <span className="text-[10px] font-bold text-purple-700 dark:text-purple-400 uppercase tracking-wider">
+                Assinatura Kiwify
+              </span>
+              <span className="text-xs font-bold text-slate-900 dark:text-white">R$ 19,90/mês</span>
             </div>
-            <p className="text-[11px] text-slate-400 mb-3">
+            <p className="text-[11px] text-slate-600 dark:text-slate-400 mb-3">
               {isSubscribed ? 'Acesso Pro ativo na Kiwify.' : 'Você está no modo Visitante.'}
             </p>
             {!isSubscribed ? (
@@ -263,7 +271,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 href={KIWIFY_CHECKOUT_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full py-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-xs font-extrabold flex items-center justify-center space-x-1.5 shadow-md shadow-orange-500/20"
+                className="w-full py-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-xs font-extrabold flex items-center justify-center space-x-1.5 shadow-md shadow-orange-500/20 active:scale-95 transition-all"
               >
                 <Crown className="w-3.5 h-3.5 text-amber-200" />
                 <span>Assinar na Kiwify</span>
@@ -271,9 +279,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             ) : (
               <button
                 onClick={onOpenSubscribe}
-                className="w-full py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center justify-center space-x-1"
+                className="w-full py-1.5 rounded-lg bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold flex items-center justify-center space-x-1"
               >
-                <CreditCard className="w-3 h-3 text-emerald-400" />
+                <CreditCard className="w-3 h-3 text-emerald-500" />
                 <span>Gerenciar Assinatura</span>
               </button>
             )}
@@ -285,21 +293,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
         {/* Banner para Visitantes */}
         {!isSubscribed && (
-          <div className="mb-8 p-5 sm:p-6 rounded-3xl bg-gradient-to-r from-purple-950/80 via-slate-900 to-indigo-950/80 border border-purple-500/40 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="mb-8 p-5 sm:p-6 rounded-3xl bg-gradient-to-r from-purple-100 via-slate-100 to-indigo-100 dark:from-purple-950/80 dark:via-slate-900 dark:to-indigo-950/80 border border-purple-300 dark:border-purple-500/40 shadow-lg flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-start space-x-3.5">
-              <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+              <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 flex items-center justify-center flex-shrink-0 mt-0.5">
                 <Lock className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-base font-extrabold text-white flex items-center space-x-2">
-                  <span>Modo Visitante: Aulas de Exemplo Liberadas</span>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300">
-                    PRÉVIA
+                <h3 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center space-x-2">
+                  <span>Modo Visitante: Aula de Degustação Liberada</span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
+                    1 AULA GRÁTIS
                   </span>
                 </h3>
-                <p className="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
-                  Você pode abrir as aulas para avaliar a metodologia. Para baixar os PDFs em A4 de alta resolução,
-                  acessar o gabarito confidencial e usar o Estúdio com IA, torne-se um <strong>Teacher Membro</strong> por apenas R$ 19,90/mês.
+                <p className="text-xs text-slate-700 dark:text-slate-300 mt-1 max-w-2xl leading-relaxed">
+                  Você pode abrir e explorar livremente a <strong>Aula Gratuita de Demonstração (A1 Greetings)</strong>. Para desbloquear toda a Trilha A1–C2 e baixar os PDFs em A4 de alta resolução com gabaritos confidenciais, torne-se um <strong>Teacher Membro</strong> por apenas R$ 19,90/mês.
                 </p>
               </div>
             </div>
@@ -317,58 +324,53 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         )}
 
-        {/* Cabeçalho de Boas-Vindas & Cards de Métricas */}
+        {/* Cabeçalho de Boas-Vindas & Trilha A1-C2 */}
         <div className="mb-8">
-          <div className="flex items-center justify-between flex-wrap gap-4 mb-6">
+          <div className="flex items-center justify-between flex-wrap gap-4 mb-4">
             <div>
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-                Olá, {currentUser.full_name.split(' ')[0]}!
+              <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 text-[11px] font-black uppercase tracking-wider mb-2 border border-purple-200 dark:border-purple-800">
+                <Star className="w-3 h-3 fill-purple-600 dark:fill-purple-400" />
+                <span>Trilha A1–C2: General English Lessons</span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                Materiais Exclusivos para Professores de Inglês
               </h2>
-              <p className="text-sm text-slate-400">
-                Explore seus planos de aula do CEFR, Business English e Kids ou crie novas lições personalizadas.
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                Planos de aula estruturados por competências comunicativas, fichas prontas para impressão e gabaritos de sala.
               </p>
             </div>
-
-            {/* Ação Rápida */}
-            <button
-              onClick={() => onOpenStudio()}
-              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold text-xs flex items-center space-x-2 shadow-lg shadow-purple-600/30 transition-all active:scale-95"
-            >
-              <Sparkles className="w-4 h-4 text-purple-200" />
-              <span>Criar Nova Aula no Estúdio</span>
-            </button>
           </div>
 
           {/* Barra de Métricas */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+            <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
                 Total de Planos
               </span>
-              <span className="text-2xl font-black text-white">{lessons.length} Aulas</span>
+              <span className="text-2xl font-black text-slate-900 dark:text-white">{lessons.length} Aulas</span>
             </div>
 
-            <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+            <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
                 Aulas Favoritas
               </span>
-              <span className="text-2xl font-black text-rose-400">{favorites.length} Salvas</span>
+              <span className="text-2xl font-black text-rose-500">{favorites.length} Salvas</span>
             </div>
 
-            <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                Novos Lançamentos
+            <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
+                Níveis CEFR
               </span>
-              <span className="text-2xl font-black text-purple-400">12 Este Mês</span>
+              <span className="text-2xl font-black text-purple-600 dark:text-purple-400">A1 ao C2</span>
             </div>
 
-            <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+            <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
                 Status da Assinatura
               </span>
               <div className="flex items-center space-x-1.5 mt-1">
-                <span className={`w-2.5 h-2.5 rounded-full ${isSubscribed ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
-                <span className={`text-sm font-bold ${isSubscribed ? 'text-emerald-400' : 'text-amber-400'}`}>
+                <span className={`w-2.5 h-2.5 rounded-full ${isSubscribed ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
+                <span className={`text-sm font-bold ${isSubscribed ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
                   {isSubscribed ? 'Teacher Membro (Ativo)' : 'Visitante'}
                 </span>
               </div>
@@ -377,7 +379,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         {/* Barra de Busca e Filtros Globais */}
-        <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 mb-8 space-y-3">
+        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 mb-8 space-y-3 shadow-sm">
           <div className="flex flex-col sm:flex-row items-center gap-3">
             {/* Input de Busca */}
             <div className="relative flex-1 w-full">
@@ -387,7 +389,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 placeholder="Buscar por tema da aula, gramática, vocabulário ou habilidades..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-purple-500"
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-xs sm:text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-purple-500"
               />
             </div>
 
@@ -395,10 +397,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <select
               value={selectedDept}
               onChange={(e) => setSelectedDept(e.target.value)}
-              className="bg-slate-950 border border-slate-800 text-xs sm:text-sm rounded-xl px-3 py-2.5 text-slate-300 focus:outline-none focus:border-purple-500 w-full sm:w-auto"
+              className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm rounded-xl px-3 py-2.5 text-slate-800 dark:text-slate-300 focus:outline-none focus:border-purple-500 w-full sm:w-auto"
             >
               <option value="ALL">Todos os Departamentos</option>
-              <option value="CEFR">CEFR Padrão</option>
+              <option value="CEFR">CEFR Padrão (A1 a C2)</option>
               <option value="Business English">Business English</option>
               <option value="English for Kids">Inglês para Crianças (Kids)</option>
               <option value="Grammar Lab">Laboratório de Gramática</option>
@@ -408,7 +410,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <select
               value={selectedCefr}
               onChange={(e) => setSelectedCefr(e.target.value)}
-              className="bg-slate-950 border border-slate-800 text-xs sm:text-sm rounded-xl px-3 py-2.5 text-slate-300 focus:outline-none focus:border-purple-500 w-full sm:w-auto"
+              className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm rounded-xl px-3 py-2.5 text-slate-800 dark:text-slate-300 focus:outline-none focus:border-purple-500 w-full sm:w-auto"
             >
               <option value="ALL">Todos os Níveis</option>
               <option value="A1">A1 (Iniciante)</option>
@@ -423,7 +425,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as any)}
-              className="bg-slate-950 border border-slate-800 text-xs sm:text-sm rounded-xl px-3 py-2.5 text-slate-300 focus:outline-none focus:border-purple-500 w-full sm:w-auto"
+              className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm rounded-xl px-3 py-2.5 text-slate-800 dark:text-slate-300 focus:outline-none focus:border-purple-500 w-full sm:w-auto"
             >
               <option value="newest">Ordenar: Mais Recentes</option>
               <option value="popular">Ordenar: Mais Baixadas</option>
@@ -435,14 +437,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         {/* Título da Grade de Aulas */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-2">
-            <h3 className="text-base font-extrabold text-white">
+            <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
               {activeSidebar === 'all'
                 ? 'Todos os Planos de Aula'
                 : activeSidebar === 'favorites'
                 ? 'Aulas Favoritadas'
                 : `Biblioteca Filtrada: ${activeSidebar}`}
             </h3>
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-800 text-purple-300 font-bold border border-slate-700">
+            <span className="text-xs px-2.5 py-0.5 rounded-full bg-purple-100 dark:bg-slate-800 text-purple-700 dark:text-purple-300 font-bold border border-purple-200 dark:border-slate-700">
               {filteredLessons.length} planos
             </span>
           </div>
@@ -456,18 +458,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 key={lesson.id}
                 lesson={lesson}
                 isFavorite={favorites.includes(lesson.id)}
+                isSubscribed={isSubscribed}
+                isFreeSample={lesson.id === FREE_SAMPLE_LESSON_ID}
                 onToggleFavorite={onToggleFavorite}
-                onOpenLesson={onOpenLesson}
-                onQuickDownloadPDF={onQuickDownloadPDF}
+                onOpenLesson={handleCardClick}
+                onQuickDownloadPDF={handleDownloadPDFClick}
               />
             ))}
           </div>
         ) : (
-          <div className="p-12 text-center rounded-3xl bg-slate-900 border border-slate-800 text-slate-400">
-            <BookOpen className="w-10 h-10 text-slate-600 mx-auto mb-3" />
-            <h4 className="text-base font-bold text-white mb-1">Nenhuma aula encontrada para esses filtros</h4>
-            <p className="text-xs text-slate-400 max-w-sm mx-auto mb-4">
-              Tente redefinir os filtros de busca ou crie uma lição personalizada usando o Estúdio com Inteligência Artificial.
+          <div className="p-12 text-center rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500">
+            <BookOpen className="w-10 h-10 text-slate-400 dark:text-slate-600 mx-auto mb-3" />
+            <h4 className="text-base font-bold text-slate-900 dark:text-white mb-1">Nenhuma aula encontrada para esses filtros</h4>
+            <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto mb-4">
+              Tente redefinir os filtros de busca para encontrar o plano desejado.
             </p>
             <button
               onClick={() => {
@@ -483,6 +487,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         )}
       </main>
+
+      {/* Paywall Modal quando o visitante tenta abrir aula bloqueada */}
+      {paywallLesson && (
+        <PaywallModal
+          lesson={paywallLesson}
+          onClose={() => setPaywallLesson(null)}
+          onOpenFreeSample={() => {
+            const sample = lessons.find((l) => l.id === FREE_SAMPLE_LESSON_ID);
+            if (sample) onOpenLesson(sample);
+          }}
+        />
+      )}
     </div>
   );
 };

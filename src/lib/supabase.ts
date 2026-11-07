@@ -17,6 +17,7 @@ export const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKe
 export const KIWIFY_CHECKOUT_URL = 'https://pay.kiwify.com.br/kUSvFoZ';
 export const MASTER_ADMIN_EMAIL = 'gestorpaid@gmail.com';
 export const DEFAULT_ADMIN_PASSWORD = '823638';
+export const FREE_SAMPLE_LESSON_ID = 'les-a1-first-day';
 
 export const getStoredAdminPassword = (): string => {
   return localStorage.getItem('fluent_admin_password') || DEFAULT_ADMIN_PASSWORD;

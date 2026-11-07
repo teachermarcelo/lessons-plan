@@ -43,7 +43,13 @@ export default function App() {
   const [collections, setCollections] = useState<Collection[]>(getStoredCollections());
   const [notifications, setNotifications] = useState<NotificationItem[]>(getStoredNotifications());
   const [emailLogs, setEmailLogs] = useState<EmailLog[]>(getStoredEmailLogs());
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('fluent_theme');
+      if (saved) return saved === 'dark';
+    }
+    return true;
+  });
 
   // Modals state
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
@@ -53,10 +59,19 @@ export default function App() {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState<boolean>(false);
   const [legalModalType, setLegalModalType] = useState<'terms' | 'privacy' | null>(null);
 
-  // Sync state to persistent localStorage
   useEffect(() => {
     setStoredUser(currentUser);
   }, [currentUser]);
+
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('fluent_theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('fluent_theme', 'light');
+    }
+  }, [isDarkMode]);
 
   useEffect(() => {
     saveStoredLessons(lessons);
@@ -273,12 +288,14 @@ export default function App() {
 
         {currentView === 'admin' && (
           <AdminCommandCenter
+            currentUser={currentUser}
+            onAdminLoginSuccess={(adminUser) => setCurrentUser(adminUser)}
             lessons={lessons}
             emailLogs={emailLogs}
             onTogglePublish={handleTogglePublish}
             onDeleteLesson={handleDeleteLesson}
-            onEditInStudio={(lesson) => handleOpenStudio(lesson)}
-            onCreateNewInStudio={() => handleOpenStudio()}
+            onSaveLessonFromStudio={handleSaveLessonFromStudio}
+            onPublishLessonFromStudio={handlePublishLessonFromStudio}
             onSendBroadcastNotification={handleSendBroadcastNotification}
             onClose={() => setCurrentView('dashboard')}
           />

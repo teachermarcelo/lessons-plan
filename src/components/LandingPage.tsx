@@ -71,18 +71,42 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 selection:bg-purple-600 selection:text-white">
+      {/* Barra de Alerta Pulsante de Lançamento */}
+      <div className="bg-gradient-to-r from-purple-950 via-indigo-950 to-slate-950 border-b border-purple-500/30 py-2.5 px-4 text-center text-xs font-semibold text-purple-200 flex items-center justify-center flex-wrap gap-2">
+        <span className="relative flex h-2.5 w-2.5">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+        </span>
+        <span>
+          <strong>Lançamento Especial para Teachers:</strong> Acesso Ilimitado à Trilha A1–C2 e Materiais Imprimíveis por apenas 
+          <span className="text-amber-300 font-extrabold ml-1">R$ 19,90/mês</span> na Kiwify!
+        </span>
+        <a 
+          href={KIWIFY_CHECKOUT_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline font-bold text-amber-300 hover:text-white ml-1 inline-flex items-center space-x-1"
+        >
+          <span>Garantir Acesso Imediato</span>
+          <ExternalLink className="w-3 h-3 inline" />
+        </a>
+      </div>
+
       {/* 1. HERO SECTION */}
-      <section className="relative pt-12 pb-20 md:pt-20 md:pb-32 overflow-hidden border-b border-slate-800">
+      <section className="relative pt-10 pb-20 md:pt-16 md:pb-32 overflow-hidden border-b border-slate-800">
         {/* Luzes de Fundo com Gradiente Glow */}
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[650px] h-[380px] bg-purple-600/18 blur-[140px] pointer-events-none rounded-full" />
         <div className="absolute top-1/3 right-10 w-[350px] h-[350px] bg-orange-500/12 blur-[120px] pointer-events-none rounded-full" />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
-          {/* Tag de Destaque Superior */}
-          <div className="inline-flex items-center space-x-2 px-4 py-1.5 rounded-full bg-purple-950/80 border border-purple-500/30 text-purple-300 text-xs font-semibold mb-6 shadow-sm hover:border-purple-400/50 transition-all">
-            <span className="flex h-2 w-2 rounded-full bg-purple-400 animate-pulse" />
+          {/* Tag de Destaque Superior com Pulse */}
+          <div className="inline-flex items-center space-x-2 px-4 py-1.5 rounded-full bg-purple-950/80 border border-purple-500/40 text-purple-200 text-xs font-semibold mb-6 shadow-lg shadow-purple-950/40 hover:border-purple-400 transition-all">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
+            </span>
             <span>Mais de 120+ Planos de Aula Prontos para Ensinar</span>
-            <span className="text-orange-400 font-extrabold ml-1">R$ 19,90/mês na Kiwify</span>
+            <span className="text-orange-400 font-black ml-1 animate-pulse">R$ 19,90/mês na Kiwify</span>
           </div>
 
           {/* Headline Principal */}
@@ -101,12 +125,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
           {/* CTAs de Ação */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
-            {/* Botão Oficial Kiwify */}
+            {/* Botão Oficial Kiwify com Animação Pulsante */}
             <a
               href={KIWIFY_CHECKOUT_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-base tracking-wide shadow-2xl shadow-orange-500/35 hover:shadow-orange-500/50 transition-all transform active:scale-95 flex items-center justify-center space-x-2.5"
+              className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-base tracking-wide shadow-2xl shadow-orange-500/40 ring-2 ring-orange-400/40 hover:ring-orange-300 transition-all transform active:scale-95 flex items-center justify-center space-x-2.5 animate-pulse"
             >
               <Crown className="w-5 h-5 text-amber-200" />
               <span>GARANTIR ACESSO TOTAL — R$ 19,90/MÊS</span>
@@ -116,12 +140,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             {/* Ver Aula Exemplo */}
             <button
               onClick={() => {
-                if (featuredLesson) onSelectLesson(featuredLesson);
+                const sample = sampleLessons.find((l) => l.id === 'les-a1-first-day') || featuredLesson;
+                if (sample) onSelectLesson(sample);
               }}
-              className="w-full sm:w-auto px-6 py-4 rounded-2xl bg-slate-900/90 hover:bg-slate-800 border border-slate-700 hover:border-purple-500/50 text-slate-200 hover:text-white font-bold text-sm transition-all flex items-center justify-center space-x-2"
+              className="w-full sm:w-auto px-6 py-4 rounded-2xl bg-slate-900/90 hover:bg-slate-800 border border-purple-500/40 hover:border-purple-400 text-purple-300 hover:text-white font-bold text-sm transition-all flex items-center justify-center space-x-2 shadow-md shadow-purple-950/30"
             >
-              <Play className="w-4 h-4 text-purple-400" />
-              <span>Ver Aula Exemplo Gratuita</span>
+              <Play className="w-4 h-4 text-purple-400 fill-purple-400" />
+              <span>Explorar Aula Gratuita (A1 Greetings)</span>
             </button>
           </div>
 
