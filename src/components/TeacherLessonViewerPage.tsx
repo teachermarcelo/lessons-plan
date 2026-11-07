@@ -87,6 +87,8 @@ export const TeacherLessonViewerPage: React.FC<TeacherLessonViewerPageProps> = (
   const [pdfMenuOpen, setPdfMenuOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isProjectorOpen, setIsProjectorOpen] = useState(false);
+  const [sidebarVisible, setSidebarVisible] = useState(false); // default false: amplia a visão da aula com abas no topo
+  const [topTabsCollapsed, setTopTabsCollapsed] = useState(false);
 
   // Audio / Speech Synthesis Player State (Estilo Ellii / 7ESL)
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
@@ -97,8 +99,8 @@ export const TeacherLessonViewerPage: React.FC<TeacherLessonViewerPageProps> = (
 
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // 7ESL / Ellii Curricular Steps definition
-  const steps: StepItem[] = [
+  // 7ESL / Ellii Curricular Steps definition (Dinâmico e 100% opcional)
+  const allSteps: StepItem[] = [
     {
       id: 'overview',
       stepNumber: 1,
@@ -181,7 +183,31 @@ export const TeacherLessonViewerPage: React.FC<TeacherLessonViewerPageProps> = (
     },
   ];
 
-  const currentStepIndex = steps.findIndex((s) => s.id === activeStep);
+  // Filtra passos com base nas opções da aula e na presença real de conteúdo
+  const steps: StepItem[] = allSteps.filter((step) => {
+    const vm = lesson.visible_modules;
+    if (step.id === 'interactive') {
+      if (vm?.interactive_html === false) return false;
+      return !!lesson.custom_html && lesson.custom_html.trim().length > 0;
+    }
+    if (step.id === 'materials') {
+      if (vm?.materials === false) return false;
+      return !!(lesson.slides_url || lesson.drive_url || lesson.youtube_url);
+    }
+    if (step.id === 'grammar') {
+      if (vm?.grammar === false) return false;
+      return !!lesson.grammar_lab?.topic || !!lesson.grammar_lab?.formula;
+    }
+    if (step.id === 'vocabulary' && vm?.vocabulary === false) return false;
+    if (step.id === 'reading' && vm?.reading === false) return false;
+    if (step.id === 'listening' && vm?.listening === false) return false;
+    if (step.id === 'speaking' && vm?.speaking === false) return false;
+    if (step.id === 'writing' && vm?.writing === false) return false;
+    if (step.id === 'answer_key' && vm?.answer_key === false) return false;
+    return true;
+  }).map((s, index) => ({ ...s, stepNumber: index + 1 }));
+
+  const currentStepIndex = Math.max(0, steps.findIndex((s) => s.id === activeStep));
 
   const handleNextStep = () => {
     if (currentStepIndex < steps.length - 1) {
@@ -301,6 +327,15 @@ export const TeacherLessonViewerPage: React.FC<TeacherLessonViewerPageProps> = (
                 {lesson.title}
               </span>
             </div>
+
+            {/* Botão de Alternar Layout: Menu Lateral vs Abas no Topo */}
+            <button
+              onClick={() => setSidebarVisible(!sidebarVisible)}
+              className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white text-xs font-bold flex items-center space-x-1 transition-all"
+              title={sidebarVisible ? "Ocultar Menu Lateral (Expandir 100% da tela)" : "Exibir Menu Lateral com Lista de Passos"}
+            >
+              {sidebarVisible ? <span>👁️ Ocultar Menu</span> : <span>📋 Menu Lateral</span>}
+            </button>
           </div>
 
           {/* Botões de Ação na Direita */}
@@ -431,128 +466,195 @@ export const TeacherLessonViewerPage: React.FC<TeacherLessonViewerPageProps> = (
         </div>
       )}
 
-      {/* 2. MAIN 2-COLUMN TEACHING WORKSPACE (Estilo Ellii & 7ESL) */}
-      <div className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 flex flex-col lg:flex-row gap-6">
+      {/* 2. MAIN TEACHING WORKSPACE (Layout Flexível: Abas no Topo ou Menu Lateral) */}
+      <div className={`flex-1 w-full mx-auto p-4 sm:p-6 lg:p-8 flex ${sidebarVisible ? 'max-w-7xl flex-col lg:flex-row gap-6' : 'flex-col max-w-full'}`}>
         
-        {/* COLUNA ESQUERDA: Sidebar de Passos do Curso (Course Steps Table of Contents) */}
-        <aside className="w-full lg:w-80 shrink-0 space-y-4">
-          <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 space-y-4 shadow-sm">
-            
-            {/* Cabeçalho da Unidade */}
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[10px] font-black uppercase tracking-wider text-purple-600 dark:text-purple-400">
-                  {lesson.department}
-                </span>
-                <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">
-                  {currentStepIndex + 1} de {steps.length} passos
-                </span>
-              </div>
-              <h2 className="text-base font-extrabold text-slate-900 dark:text-white leading-snug">
-                {lesson.title}
-              </h2>
-              <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full mt-3 overflow-hidden">
-                <div
-                  className="bg-gradient-to-r from-purple-500 to-indigo-500 h-full transition-all duration-300"
-                  style={{ width: `${((currentStepIndex + 1) / steps.length) * 100}%` }}
-                />
-              </div>
-            </div>
-
-            {/* Lista Vertical de Passos (7ESL / Ellii Architecture) */}
-            <nav className="space-y-1.5 pt-2">
-              {steps.map((step) => {
-                const isActive = activeStep === step.id;
-                return (
-                  <button
-                    key={step.id}
-                    onClick={() => {
-                      setActiveStep(step.id);
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }}
-                    className={`w-full text-left px-3.5 py-3 rounded-2xl text-xs font-bold flex items-center justify-between transition-all ${
-                      isActive
-                        ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-900 border border-transparent hover:border-slate-200 dark:hover:border-slate-800'
-                    }`}
-                  >
-                    <div className="flex items-center space-x-3">
-                      <span
-                        className={`w-6 h-6 rounded-xl flex items-center justify-center text-[11px] font-mono font-black ${
-                          isActive
-                            ? 'bg-white text-purple-600'
-                            : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-400'
-                        }`}
-                      >
+        {/* TOP TABS STEPPER (Quando o menu lateral está recolhido, as abas ficam no topo sem ocupar a visão da aula!) */}
+        {!sidebarVisible && (
+          <div className="w-full mb-6">
+            <div className="bg-white/95 dark:bg-slate-950/95 border border-slate-200 dark:border-slate-800 rounded-2xl p-2.5 shadow-md flex items-center justify-between gap-3 backdrop-blur-md">
+              
+              {/* Pills dos Passos no Topo */}
+              <div className="flex items-center space-x-1.5 sm:space-x-2 overflow-x-auto py-1 scrollbar-none flex-1">
+                {steps.map((step) => {
+                  const isActive = activeStep === step.id;
+                  return (
+                    <button
+                      key={step.id}
+                      onClick={() => {
+                        setActiveStep(step.id);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 flex items-center space-x-1.5 transition-all ${
+                        isActive
+                          ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900 border border-transparent hover:border-slate-200 dark:hover:border-slate-800'
+                      }`}
+                    >
+                      <span className={`w-5 h-5 rounded-lg text-[10px] flex items-center justify-center font-mono font-black ${
+                        isActive ? 'bg-white text-purple-600' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                      }`}>
                         {step.stepNumber}
                       </span>
-                      <div>
-                        <div className="font-extrabold leading-tight">{step.title}</div>
-                        <div className={`text-[10px] font-medium ${isActive ? 'text-purple-200' : 'text-slate-500'}`}>
-                          {step.category} • {step.durationEst}
-                        </div>
-                      </div>
-                    </div>
-                    {isActive ? (
-                      <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-                    ) : (
-                      <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-600" />
-                    )}
-                  </button>
-                );
-              })}
-            </nav>
-          </div>
+                      <span>{step.category}</span>
+                    </button>
+                  );
+                })}
+              </div>
 
-          {/* Card de Recursos Complementares Rápidos */}
-          <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 space-y-3 shadow-sm">
-            <h4 className="text-xs font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center space-x-1.5">
-              <Sparkles className="w-4 h-4 text-amber-500 dark:text-amber-400" />
-              <span>Materiais Prontos</span>
-            </h4>
-            <div className="space-y-2 text-xs">
-              <button
-                onClick={() => setIsProjectorOpen(true)}
-                className="w-full p-2.5 rounded-xl bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-900/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-500/30 flex items-center justify-between font-bold transition-all text-xs"
-              >
-                <div className="flex items-center space-x-2">
-                  <Presentation className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                  <span>Projetar em Sala (TV / Zoom)</span>
-                </div>
-                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-              </button>
+              {/* Ações Rápidas no Topo */}
+              <div className="flex items-center space-x-2 shrink-0">
+                <button
+                  onClick={() => setIsProjectorOpen(true)}
+                  className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold flex items-center space-x-1.5 shadow-sm active:scale-95 transition-all"
+                  title="Abrir Modo Projeção de Sala de Aula"
+                >
+                  <Presentation className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Projetar</span>
+                </button>
 
-              <a
-                href={lesson.slides_url || 'https://docs.google.com/presentation'}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-850 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800 flex items-center justify-between transition-all"
-              >
-                <div className="flex items-center space-x-2">
-                  <Presentation className="w-4 h-4 text-amber-500 dark:text-amber-400" />
-                  <span>Google Slides</span>
-                </div>
-                <ExternalLink className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
-              </a>
-
-              <a
-                href={lesson.drive_url || 'https://drive.google.com'}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-850 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800 flex items-center justify-between transition-all"
-              >
-                <div className="flex items-center space-x-2">
-                  <FolderDown className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
-                  <span>Google Drive (PDFs)</span>
-                </div>
-                <ExternalLink className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
-              </a>
+                <button
+                  onClick={() => setSidebarVisible(true)}
+                  className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold flex items-center space-x-1"
+                  title="Exibir menu lateral completo"
+                >
+                  <span>📋 Menu</span>
+                </button>
+              </div>
             </div>
           </div>
-        </aside>
+        )}
 
-        {/* COLUNA DIREITA: Teaching Canvas (Área de Ensino Completa) */}
-        <main className="flex-1 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 lg:p-10 shadow-xl space-y-8 min-h-[750px]">
+        {/* COLUNA ESQUERDA: Sidebar de Passos do Curso (Exibida somente se sidebarVisible === true) */}
+        {sidebarVisible && (
+          <aside className="w-full lg:w-80 shrink-0 space-y-4">
+            <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 space-y-4 shadow-sm">
+              
+              {/* Cabeçalho da Unidade com Botão Fechar Sidebar */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-purple-600 dark:text-purple-400">
+                    {lesson.department}
+                  </span>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">
+                      {currentStepIndex + 1} de {steps.length}
+                    </span>
+                    <button
+                      onClick={() => setSidebarVisible(false)}
+                      className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-0.5"
+                      title="Ocultar menu lateral e usar abas no topo"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+                <h2 className="text-base font-extrabold text-slate-900 dark:text-white leading-snug">
+                  {lesson.title}
+                </h2>
+                <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full mt-3 overflow-hidden">
+                  <div
+                    className="bg-gradient-to-r from-purple-500 to-indigo-500 h-full transition-all duration-300"
+                    style={{ width: `${((currentStepIndex + 1) / steps.length) * 100}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Lista Vertical de Passos (7ESL / Ellii Architecture) */}
+              <nav className="space-y-1.5 pt-2">
+                {steps.map((step) => {
+                  const isActive = activeStep === step.id;
+                  return (
+                    <button
+                      key={step.id}
+                      onClick={() => {
+                        setActiveStep(step.id);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      className={`w-full text-left px-3.5 py-3 rounded-2xl text-xs font-bold flex items-center justify-between transition-all ${
+                        isActive
+                          ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-900 border border-transparent hover:border-slate-200 dark:hover:border-slate-800'
+                      }`}
+                    >
+                      <div className="flex items-center space-x-3">
+                        <span
+                          className={`w-6 h-6 rounded-xl flex items-center justify-center text-[11px] font-mono font-black ${
+                            isActive
+                              ? 'bg-white text-purple-600'
+                              : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-400'
+                          }`}
+                        >
+                          {step.stepNumber}
+                        </span>
+                        <div>
+                          <div className="font-extrabold leading-tight">{step.title}</div>
+                          <div className={`text-[10px] font-medium ${isActive ? 'text-purple-200' : 'text-slate-500'}`}>
+                            {step.category} • {step.durationEst}
+                          </div>
+                        </div>
+                      </div>
+                      {isActive ? (
+                        <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                      ) : (
+                        <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-600" />
+                      )}
+                    </button>
+                  );
+                })}
+              </nav>
+            </div>
+
+            {/* Card de Recursos Complementares Rápidos */}
+            <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 space-y-3 shadow-sm">
+              <h4 className="text-xs font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center space-x-1.5">
+                <Sparkles className="w-4 h-4 text-amber-500 dark:text-amber-400" />
+                <span>Materiais Prontos</span>
+              </h4>
+              <div className="space-y-2 text-xs">
+                <button
+                  onClick={() => setIsProjectorOpen(true)}
+                  className="w-full p-2.5 rounded-xl bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-900/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-500/30 flex items-center justify-between font-bold transition-all text-xs"
+                >
+                  <div className="flex items-center space-x-2">
+                    <Presentation className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                    <span>Projetar em Sala (TV / Zoom)</span>
+                  </div>
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                </button>
+
+                <a
+                  href={lesson.slides_url || 'https://docs.google.com/presentation'}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-850 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800 flex items-center justify-between transition-all"
+                >
+                  <div className="flex items-center space-x-2">
+                    <Presentation className="w-4 h-4 text-amber-500 dark:text-amber-400" />
+                    <span>Google Slides</span>
+                  </div>
+                  <ExternalLink className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
+                </a>
+
+                <a
+                  href={lesson.drive_url || 'https://drive.google.com'}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-850 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800 flex items-center justify-between transition-all"
+                >
+                  <div className="flex items-center space-x-2">
+                    <FolderDown className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
+                    <span>Google Drive (PDFs)</span>
+                  </div>
+                  <ExternalLink className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
+                </a>
+              </div>
+            </div>
+          </aside>
+        )}
+
+        {/* COLUNA DIREITA OU CANVAS EXPANDIDO 100%: Teaching Canvas */}
+        <main className={`flex-1 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 lg:p-10 shadow-xl space-y-8 min-h-[750px] ${!sidebarVisible ? 'w-full' : ''}`}>
           
           {/* PASSO 1: GUIA DO PROFESSOR (TEACHER GUIDE) */}
           {activeStep === 'overview' && (

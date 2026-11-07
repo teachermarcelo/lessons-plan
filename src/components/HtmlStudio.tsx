@@ -60,6 +60,7 @@ export const HtmlStudio: React.FC<HtmlStudioProps> = ({
   onBackToDashboard,
 }) => {
   const [studioMode, setStudioMode] = useState<'visual' | 'code' | 'preview'>('visual');
+  const [creatorTab, setCreatorTab] = useState<'teacher' | 'student' | 'modules'>('teacher');
   const [previewTab, setPreviewTab] = useState<'teacher' | 'student'>('teacher');
   const [aiModalOpen, setAiModalOpen] = useState(false);
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
@@ -950,165 +951,358 @@ export const HtmlStudio: React.FC<HtmlStudioProps> = ({
               </div>
             </div>
 
-            {/* Colunas Direitas: Etapas do Professor & Ficha do Aluno */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Etapas CELTA do Professor */}
-              <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                  <h3 className="text-sm font-extrabold text-purple-400 uppercase tracking-wider flex items-center space-x-1.5">
-                    <BookOpen className="w-4 h-4" />
-                    <span>Etapas Pedagógicas do Professor (CELTA / DELTA)</span>
-                  </h3>
-                  <span className="text-[11px] text-slate-400">Minutagem & Roteiro</span>
-                </div>
+            {/* Colunas Direitas: Sub-Abas de Criação (Professor, Aluno, Módulos Opcionais) */}
+            <div className="lg:col-span-2 space-y-4">
+              
+              {/* Barra de Sub-Navegação do Criador */}
+              <div className="flex items-center space-x-2 bg-slate-900/90 border border-slate-800 p-1.5 rounded-2xl">
+                <button
+                  type="button"
+                  onClick={() => setCreatorTab('teacher')}
+                  className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center space-x-2 transition-all ${
+                    creatorTab === 'teacher'
+                      ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30'
+                      : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                  }`}
+                >
+                  <BookOpen className="w-4 h-4" />
+                  <span>1. Roteiro do Professor</span>
+                </button>
 
-                <div className="space-y-3 text-xs">
-                  <div>
-                    <label className="text-purple-300 font-bold block mb-1">
-                      Etapa 1: Warm-up & Quebra-gelo (5 min)
-                    </label>
-                    <textarea
-                      rows={2}
-                      value={lessonData.teacher_version.warmup}
-                      onChange={(e) =>
-                        setLessonData({
-                          ...lessonData,
-                          teacher_version: { ...lessonData.teacher_version, warmup: e.target.value },
-                        })
-                      }
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500"
-                    />
-                  </div>
+                <button
+                  type="button"
+                  onClick={() => setCreatorTab('student')}
+                  className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center space-x-2 transition-all ${
+                    creatorTab === 'student'
+                      ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
+                      : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                  }`}
+                >
+                  <Layers className="w-4 h-4" />
+                  <span>2. Ficha do Aluno (Exercícios & Fala)</span>
+                </button>
 
-                  <div>
-                    <label className="text-purple-300 font-bold block mb-1">
-                      Etapa 2: Contextualização / Lead-in (10 min)
-                    </label>
-                    <textarea
-                      rows={2}
-                      value={lessonData.teacher_version.lead_in}
-                      onChange={(e) =>
-                        setLessonData({
-                          ...lessonData,
-                          teacher_version: { ...lessonData.teacher_version, lead_in: e.target.value },
-                        })
-                      }
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-purple-300 font-bold block mb-1">
-                      Etapa 3: Apresentação da Linguagem (Meaning, Form, Pronunciation) (15 min)
-                    </label>
-                    <textarea
-                      rows={3}
-                      value={lessonData.teacher_version.presentation}
-                      onChange={(e) =>
-                        setLessonData({
-                          ...lessonData,
-                          teacher_version: { ...lessonData.teacher_version, presentation: e.target.value },
-                        })
-                      }
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-purple-300 font-bold block mb-1">
-                      Etapa 4: Prática Controlada (10 min)
-                    </label>
-                    <textarea
-                      rows={2}
-                      value={lessonData.teacher_version.controlled_practice}
-                      onChange={(e) =>
-                        setLessonData({
-                          ...lessonData,
-                          teacher_version: { ...lessonData.teacher_version, controlled_practice: e.target.value },
-                        })
-                      }
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-purple-300 font-bold block mb-1">
-                      Etapa 5: Produção Livre & Conversação (15 min)
-                    </label>
-                    <textarea
-                      rows={3}
-                      value={lessonData.teacher_version.communicative_practice}
-                      onChange={(e) =>
-                        setLessonData({
-                          ...lessonData,
-                          teacher_version: { ...lessonData.teacher_version, communicative_practice: e.target.value },
-                        })
-                      }
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-purple-300 font-bold block mb-1">
-                      Etapa 6: Encerramento & Feedback Corretivo (5 min)
-                    </label>
-                    <textarea
-                      rows={2}
-                      value={lessonData.teacher_version.wrap_up}
-                      onChange={(e) =>
-                        setLessonData({
-                          ...lessonData,
-                          teacher_version: { ...lessonData.teacher_version, wrap_up: e.target.value },
-                        })
-                      }
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500"
-                    />
-                  </div>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setCreatorTab('modules')}
+                  className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center space-x-2 transition-all ${
+                    creatorTab === 'modules'
+                      ? 'bg-amber-600 text-white shadow-md shadow-amber-600/30'
+                      : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                  }`}
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span>3. Módulos Visíveis (Tudo Opcional)</span>
+                </button>
               </div>
 
-              {/* Material do Aluno */}
-              <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                  <h3 className="text-sm font-extrabold text-indigo-400 uppercase tracking-wider flex items-center space-x-1.5">
-                    <Layers className="w-4 h-4" />
-                    <span>Conteúdo da Ficha do Aluno</span>
-                  </h3>
-                  <span className="text-[11px] text-slate-400">Impresso no PDF do aluno</span>
-                </div>
-
-                <div className="space-y-3 text-xs">
-                  <div>
-                    <label className="text-indigo-300 font-bold block mb-1">Texto de Leitura & Discussão</label>
-                    <textarea
-                      rows={3}
-                      value={lessonData.student_version.reading_text}
-                      onChange={(e) =>
-                        setLessonData({
-                          ...lessonData,
-                          student_version: { ...lessonData.student_version, reading_text: e.target.value },
-                        })
-                      }
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none"
-                    />
+              {/* ABA 1: ROTEIRO DO PROFESSOR (CELTA / DELTA) */}
+              {creatorTab === 'teacher' && (
+                <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-4 animate-in fade-in">
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <h3 className="text-sm font-extrabold text-purple-400 uppercase tracking-wider flex items-center space-x-1.5">
+                      <BookOpen className="w-4 h-4" />
+                      <span>Etapas Pedagógicas do Professor (CELTA / DELTA)</span>
+                    </h3>
+                    <span className="text-[11px] text-slate-400">Tudo é opcional</span>
                   </div>
 
-                  <div>
-                    <label className="text-indigo-300 font-bold block mb-1">Exercícios Gramaticais & Lacunas</label>
-                    <textarea
-                      rows={3}
-                      value={lessonData.student_version.grammar_exercises}
-                      onChange={(e) =>
-                        setLessonData({
-                          ...lessonData,
-                          student_version: { ...lessonData.student_version, grammar_exercises: e.target.value },
-                        })
-                      }
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none"
-                    />
+                  <div className="space-y-3.5 text-xs">
+                    <div>
+                      <label className="text-purple-300 font-bold block mb-1">
+                        Etapa 1: Warm-up & Quebra-gelo <span className="text-slate-500 font-normal">(Opcional • 5 min)</span>
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={lessonData.teacher_version.warmup}
+                        onChange={(e) =>
+                          setLessonData({
+                            ...lessonData,
+                            teacher_version: { ...lessonData.teacher_version, warmup: e.target.value },
+                          })
+                        }
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-purple-300 font-bold block mb-1">
+                        Etapa 2: Contextualização / Lead-in <span className="text-slate-500 font-normal">(Opcional • 10 min)</span>
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={lessonData.teacher_version.lead_in}
+                        onChange={(e) =>
+                          setLessonData({
+                            ...lessonData,
+                            teacher_version: { ...lessonData.teacher_version, lead_in: e.target.value },
+                          })
+                        }
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-purple-300 font-bold block mb-1">
+                        Etapa 3: Apresentação da Linguagem (Meaning, Form, Pronunciation) <span className="text-slate-500 font-normal">(Opcional • 15 min)</span>
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={lessonData.teacher_version.presentation}
+                        onChange={(e) =>
+                          setLessonData({
+                            ...lessonData,
+                            teacher_version: { ...lessonData.teacher_version, presentation: e.target.value },
+                          })
+                        }
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-purple-300 font-bold block mb-1">
+                        Etapa 4: Prática Controlada <span className="text-slate-500 font-normal">(Opcional • 10 min)</span>
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={lessonData.teacher_version.controlled_practice}
+                        onChange={(e) =>
+                          setLessonData({
+                            ...lessonData,
+                            teacher_version: { ...lessonData.teacher_version, controlled_practice: e.target.value },
+                          })
+                        }
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-purple-300 font-bold block mb-1">
+                        Etapa 5: Produção Livre & Conversação <span className="text-slate-500 font-normal">(Opcional • 15 min)</span>
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={lessonData.teacher_version.communicative_practice}
+                        onChange={(e) =>
+                          setLessonData({
+                            ...lessonData,
+                            teacher_version: { ...lessonData.teacher_version, communicative_practice: e.target.value },
+                          })
+                        }
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-purple-300 font-bold block mb-1">
+                        Etapa 6: Encerramento & Feedback Corretivo <span className="text-slate-500 font-normal">(Opcional • 5 min)</span>
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={lessonData.teacher_version.wrap_up}
+                        onChange={(e) =>
+                          setLessonData({
+                            ...lessonData,
+                            teacher_version: { ...lessonData.teacher_version, wrap_up: e.target.value },
+                          })
+                        }
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-purple-500"
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
+
+              {/* ABA 2: FICHA E VERSÃO DO ALUNO (EXERCÍCIOS, LEITURA E FALA) */}
+              {creatorTab === 'student' && (
+                <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-4 animate-in fade-in">
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <div>
+                      <h3 className="text-sm font-extrabold text-indigo-400 uppercase tracking-wider flex items-center space-x-1.5">
+                        <Layers className="w-4 h-4" />
+                        <span>Ficha e Atividades do Aluno (Student Worksheet)</span>
+                      </h3>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        Este é o conteúdo direto que o aluno recebe para ler, preencher e falar em sala ou em casa.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4 text-xs">
+                    {/* Texto de Leitura do Aluno */}
+                    <div>
+                      <label className="text-indigo-300 font-bold flex items-center justify-between mb-1">
+                        <span>Texto de Leitura do Aluno (Reading Passage)</span>
+                        <span className="text-slate-500 font-normal">(Opcional)</span>
+                      </label>
+                      <textarea
+                        rows={4}
+                        placeholder="Insira aqui o diálogo ou texto que o aluno irá ler em sala..."
+                        value={lessonData.student_version.reading_text}
+                        onChange={(e) =>
+                          setLessonData({
+                            ...lessonData,
+                            student_version: { ...lessonData.student_version, reading_text: e.target.value },
+                          })
+                        }
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white font-serif leading-relaxed focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+
+                    {/* Exercícios Gramaticais do Aluno */}
+                    <div>
+                      <label className="text-indigo-300 font-bold flex items-center justify-between mb-1">
+                        <span>Exercícios Gramaticais & Lacunas (Fill in the blanks)</span>
+                        <span className="text-slate-500 font-normal">(Opcional)</span>
+                      </label>
+                      <textarea
+                        rows={3}
+                        placeholder="Ex: 1. She ___ (work) at a hospital. 2. They ___ (not/like) coffee."
+                        value={lessonData.student_version.grammar_exercises}
+                        onChange={(e) =>
+                          setLessonData({
+                            ...lessonData,
+                            student_version: { ...lessonData.student_version, grammar_exercises: e.target.value },
+                          })
+                        }
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+
+                    {/* Atividades de Vocabulário do Aluno */}
+                    <div>
+                      <label className="text-indigo-300 font-bold flex items-center justify-between mb-1">
+                        <span>Atividades de Vocabulário & Definições do Aluno</span>
+                        <span className="text-slate-500 font-normal">(Opcional)</span>
+                      </label>
+                      <textarea
+                        rows={3}
+                        placeholder="Ex: Relacione as palavras com seus sinônimos ou definições..."
+                        value={lessonData.student_version.vocab_activities || ''}
+                        onChange={(e) =>
+                          setLessonData({
+                            ...lessonData,
+                            student_version: { ...lessonData.student_version, vocab_activities: e.target.value },
+                          })
+                        }
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+
+                    {/* Prompts de Fala do Aluno */}
+                    <div>
+                      <label className="text-indigo-300 font-bold flex items-center justify-between mb-1">
+                        <span>Perguntas de Conversação em Duplas (Speaking Prompts)</span>
+                        <span className="text-slate-500 font-normal">(Separadas por quebra de linha)</span>
+                      </label>
+                      <textarea
+                        rows={3}
+                        placeholder="1. What did you do last weekend?&#10;2. Where would you like to travel next?"
+                        value={lessonData.student_version.speaking_prompts.join('\n')}
+                        onChange={(e) =>
+                          setLessonData({
+                            ...lessonData,
+                            student_version: {
+                              ...lessonData.student_version,
+                              speaking_prompts: e.target.value.split('\n').filter((p) => p.trim().length > 0),
+                            },
+                          })
+                        }
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+
+                    {/* Tarefa de Casa do Aluno */}
+                    <div>
+                      <label className="text-indigo-300 font-bold flex items-center justify-between mb-1">
+                        <span>Tarefa de Casa / Redação do Aluno (Homework)</span>
+                        <span className="text-slate-500 font-normal">(Opcional)</span>
+                      </label>
+                      <textarea
+                        rows={2}
+                        placeholder="Ex: Escreva um e-mail formal de 50 palavras solicitando informações sobre o curso..."
+                        value={lessonData.student_version.homework}
+                        onChange={(e) =>
+                          setLessonData({
+                            ...lessonData,
+                            student_version: { ...lessonData.student_version, homework: e.target.value },
+                          })
+                        }
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ABA 3: SEÇÕES & MÓDULOS VISÍVEIS (TUDO É 100% OPCIONAL) */}
+              {creatorTab === 'modules' && (
+                <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-4 animate-in fade-in">
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <div>
+                      <h3 className="text-sm font-extrabold text-amber-400 uppercase tracking-wider flex items-center space-x-1.5">
+                        <Sparkles className="w-4 h-4" />
+                        <span>Controle de Seções (Tudo Opcional)</span>
+                      </h3>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        Escolha exatamente quais abas e módulos devem aparecer para o professor e alunos nesta aula.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 text-xs">
+                    {[
+                      { key: 'teacher_guide', label: 'Guia do Professor & Metodologia', desc: 'Metodologia e roteiro de sala' },
+                      { key: 'warmup', label: 'Warm-up & Quebra-Gelo', desc: 'Ativação inicial em duplas' },
+                      { key: 'student_worksheet', label: 'Ficha do Aluno', desc: 'Atividades e tarefas de sala' },
+                      { key: 'vocabulary', label: 'Vocabulário & Fonética IPA', desc: 'Cards de palavras com áudio nativo' },
+                      { key: 'grammar', label: 'Laboratório de Gramática', desc: 'Fórmulas e erros comuns de brasileiros' },
+                      { key: 'reading', label: 'Texto de Leitura', desc: 'Passagem formatada e compreensão' },
+                      { key: 'listening', label: 'Listening & Áudio/Vídeo', desc: 'Vídeo do YouTube e drills auditivos' },
+                      { key: 'speaking', label: 'Conversação & Role-Play', desc: 'Perguntas de duplas e simulações' },
+                      { key: 'writing', label: 'Exercícios Escritos & Homework', desc: 'Prática de escrita e tarefa' },
+                      { key: 'quizzes', label: 'Quiz & Desafio de Fixação', desc: 'Perguntas interativas de múltipla escolha' },
+                      { key: 'interactive_html', label: 'Código HTML / Sandbox', desc: 'Aulas interativas customizadas' },
+                      { key: 'materials', label: 'Recursos em Nuvem', desc: 'Links do Google Drive e Slides' },
+                      { key: 'answer_key', label: 'Gabarito Oficial', desc: 'Respostas confidenciais do professor' },
+                    ].map((mod) => {
+                      const isEnabled = (lessonData.visible_modules as any)?.[mod.key] !== false;
+                      return (
+                        <div
+                          key={mod.key}
+                          onClick={() => {
+                            const updated = {
+                              ...(lessonData.visible_modules || {}),
+                              [mod.key]: !isEnabled,
+                            };
+                            setLessonData({ ...lessonData, visible_modules: updated });
+                          }}
+                          className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-start justify-between gap-3 ${
+                            isEnabled
+                              ? 'bg-slate-950 border-purple-500/50 shadow-md shadow-purple-500/10'
+                              : 'bg-slate-950/50 border-slate-800 opacity-60'
+                          }`}
+                        >
+                          <div>
+                            <span className={`font-bold block ${isEnabled ? 'text-white' : 'text-slate-400'}`}>
+                              {mod.label}
+                            </span>
+                            <span className="text-[10px] text-slate-500 block mt-0.5">
+                              {mod.desc}
+                            </span>
+                          </div>
+
+                          <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 text-xs font-bold ${
+                            isEnabled ? 'bg-purple-600 text-white' : 'bg-slate-800 text-slate-500'
+                          }`}>
+                            {isEnabled ? '✓' : '✕'}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}

@@ -121,6 +121,21 @@ export interface Lesson {
   slides_url?: string;
   youtube_url?: string;
   external_links?: { title: string; url: string; type: 'drive' | 'slides' | 'youtube' | 'quiz' | 'external' }[];
+  visible_modules?: {
+    teacher_guide?: boolean;
+    student_worksheet?: boolean;
+    warmup?: boolean;
+    vocabulary?: boolean;
+    grammar?: boolean;
+    reading?: boolean;
+    listening?: boolean;
+    speaking?: boolean;
+    writing?: boolean;
+    interactive_html?: boolean;
+    materials?: boolean;
+    quizzes?: boolean;
+    answer_key?: boolean;
+  };
 }
 
 export interface Collection {
