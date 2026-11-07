@@ -169,3 +169,25 @@ export interface SubscriptionPlan {
   description: string;
   features: string[];
 }
+
+export interface CheckoutLead {
+  id: string;
+  created_at: string;
+  source_page: string;
+  lesson_title?: string;
+  device_type: 'Desktop' | 'Mobile' | 'Tablet';
+  lead_name: string;
+  lead_email: string;
+  lead_phone?: string;
+  status: 'clicked_checkout' | 'completed_purchase' | 'abandoned' | 'recovered';
+  notes?: string;
+}
+
+export type PDFExportType =
+  | 'TEACHER_VERSION'
+  | 'STUDENT_VERSION'
+  | 'WORKSHEET'
+  | 'FLASHCARDS'
+  | 'ANSWER_KEY'
+  | 'COMPLETE_PACK';
+

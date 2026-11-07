@@ -15,7 +15,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { UserProfile, NotificationItem } from '../types/fluent';
-import { KIWIFY_CHECKOUT_URL } from '../lib/supabase';
+import { KIWIFY_CHECKOUT_URL, trackCheckoutLead } from '../lib/supabase';
 
 interface NavbarProps {
   currentUser: UserProfile | null;
@@ -222,6 +222,14 @@ export const Navbar: React.FC<NavbarProps> = ({
               href={KIWIFY_CHECKOUT_URL}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => {
+                trackCheckoutLead({
+                  source_page: 'Barra Superior (Navbar - Desktop)',
+                  lesson_title: 'Botão de Assinatura R$ 19,90/mês',
+                  lead_name: currentUser?.full_name,
+                  lead_email: currentUser?.email,
+                });
+              }}
               className="bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold text-xs sm:text-sm px-4 py-2 rounded-xl shadow-md shadow-orange-500/25 flex items-center space-x-1.5 transition-all transform active:scale-95 animate-pulse"
             >
               <Crown className="w-4 h-4 text-amber-200" />
@@ -373,6 +381,14 @@ export const Navbar: React.FC<NavbarProps> = ({
             href={KIWIFY_CHECKOUT_URL}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={() => {
+              trackCheckoutLead({
+                source_page: 'Barra Superior (Navbar - Mobile)',
+                lesson_title: 'Botão de Assinatura R$ 19,90/mês',
+                lead_name: currentUser?.full_name,
+                lead_email: currentUser?.email,
+              });
+            }}
             className="w-full block text-center mt-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white font-extrabold py-3 rounded-xl shadow-lg"
           >
             ASSINAR NA KIWIFY — R$ 19,90/MÊS →

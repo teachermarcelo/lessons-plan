@@ -1,5 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { UserProfile, Lesson, NotificationItem, Collection, EmailLog, Announcement } from '../types/fluent';
+import { UserProfile, Lesson, NotificationItem, Collection, EmailLog, Announcement, CheckoutLead } from '../types/fluent';
 import { INITIAL_LESSONS } from '../data/initialCatalog';
 
 // Retrieve credentials from environment or fall back to local mode
@@ -116,6 +116,7 @@ const STORAGE_KEYS = {
   COLLECTIONS: 'fluent_immersion_collections',
   NOTIFICATIONS: 'fluent_immersion_notifications',
   EMAIL_LOGS: 'fluent_immersion_email_logs',
+  CHECKOUT_LEADS: 'fluent_immersion_checkout_leads',
   THEME: 'fluent_immersion_theme',
 };
 
@@ -142,7 +143,17 @@ export const getStoredLessons = (): Lesson[] => {
     const raw = localStorage.getItem(STORAGE_KEYS.LESSONS);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.map((l: Lesson) => {
+          if (l.language_focus && (l.language_focus.includes('useState') || l.language_focus.includes('function(') || l.language_focus.includes('opts:'))) {
+            return {
+              ...l,
+              language_focus: 'Dominar estruturas comunicativas em contextos reais do dia a dia.'
+            };
+          }
+          return l;
+        });
+      }
     }
   } catch (e) {
     console.error('Failed to parse stored lessons', e);
@@ -239,3 +250,102 @@ export const getStoredEmailLogs = (): EmailLog[] => {
 export const saveStoredEmailLogs = (logs: EmailLog[]) => {
   localStorage.setItem(STORAGE_KEYS.EMAIL_LOGS, JSON.stringify(logs));
 };
+
+export const INITIAL_CHECKOUT_LEADS: CheckoutLead[] = [
+  {
+    id: 'lead-kiw-101',
+    created_at: new Date(Date.now() - 1000 * 60 * 35).toISOString(),
+    source_page: 'Aula B2 • Strategic Negotiations (Card)',
+    lesson_title: 'Strategic Negotiations: Bargaining & Concession Anchoring',
+    device_type: 'Desktop',
+    lead_name: 'Marcos Paulo (Teacher Particular)',
+    lead_email: 'marcos.teacher.sp@gmail.com',
+    lead_phone: '+55 11 98765-4321',
+    status: 'abandoned',
+    notes: 'Clicou no botão "Assinar na Kiwify (R$ 19,90)" após ver a aula demonstrativa B2.',
+  },
+  {
+    id: 'lead-kiw-102',
+    created_at: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
+    source_page: 'Barra Superior (Navbar)',
+    lesson_title: 'Botão de Assinatura R$ 19,90',
+    device_type: 'Mobile',
+    lead_name: 'Fernanda Silveira',
+    lead_email: 'fernanda.english.coach@hotmail.com',
+    lead_phone: '+55 21 99123-9876',
+    status: 'abandoned',
+    notes: 'Acessou pelo iPhone e abriu a página de pagamento da Kiwify.',
+  },
+  {
+    id: 'lead-kiw-103',
+    created_at: new Date(Date.now() - 1000 * 60 * 360).toISOString(),
+    source_page: 'Paywall de Bloqueio • Ficha do Aluno PDF',
+    lesson_title: 'First Day in English: Essential Greetings',
+    device_type: 'Desktop',
+    lead_name: 'Camila Rocha',
+    lead_email: 'camila.rocha.esl@gmail.com',
+    lead_phone: '+55 31 98888-2233',
+    status: 'completed_purchase',
+    notes: 'Converteu com sucesso! Compra aprovada via PIX na Kiwify.',
+  },
+];
+
+export const getStoredCheckoutLeads = (): CheckoutLead[] => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.CHECKOUT_LEADS);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return INITIAL_CHECKOUT_LEADS;
+};
+
+export const saveStoredCheckoutLeads = (leads: CheckoutLead[]) => {
+  localStorage.setItem(STORAGE_KEYS.CHECKOUT_LEADS, JSON.stringify(leads));
+};
+
+export const trackCheckoutLead = (params: {
+  source_page: string;
+  lesson_title?: string;
+  lead_name?: string;
+  lead_email?: string;
+  lead_phone?: string;
+}): CheckoutLead => {
+  const isMobile = typeof window !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  const isTablet = typeof window !== 'undefined' && /iPad|Tablet/i.test(navigator.userAgent);
+  const device: 'Desktop' | 'Mobile' | 'Tablet' = isMobile ? 'Mobile' : isTablet ? 'Tablet' : 'Desktop';
+
+  const newLead: CheckoutLead = {
+    id: `lead-click-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+    created_at: new Date().toISOString(),
+    source_page: params.source_page,
+    lesson_title: params.lesson_title || 'Navegação Geral',
+    device_type: device,
+    lead_name: params.lead_name || 'Professor Visitante (Clique Anônimo)',
+    lead_email: params.lead_email || 'Aguardando preenchimento no checkout',
+    lead_phone: params.lead_phone,
+    status: 'clicked_checkout',
+    notes: `Clicou para ir ao checkout da Kiwify a partir de: ${params.source_page}`,
+  };
+
+  try {
+    const existing = getStoredCheckoutLeads();
+    const updated = [newLead, ...existing];
+    saveStoredCheckoutLeads(updated);
+
+    // Disparar em background para o backend
+    fetch('/api/leads/track', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newLead),
+    }).catch(() => {});
+  } catch (e) {}
+
+  return newLead;
+};
+
+export const updateLeadStatus = (leadId: string, status: CheckoutLead['status']) => {
+  const existing = getStoredCheckoutLeads();
+  const updated = existing.map((lead) => (lead.id === leadId ? { ...lead, status } : lead));
+  saveStoredCheckoutLeads(updated);
+  return updated;
+};
+

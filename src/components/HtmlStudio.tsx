@@ -307,18 +307,29 @@ export const HtmlStudio: React.FC<HtmlStudioProps> = ({
         const parser = new DOMParser();
         const doc = parser.parseFromString(rawHtml, 'text/html');
 
+        // Helper para checar se uma string contém tokens de código JS/React
+        const isCodeString = (text: string | null | undefined): boolean => {
+          if (!text) return true;
+          return /useState|useRef|useEffect|function\s*\(|=>|const\s+\w+\s*=|let\s+\w+\s*=|var\s+\w+\s*=|;\s*\}|\{\s*q:|\bopts:\s*\[|\bexport\s+default|\breturn\s*\(|\.filter\(|\.map\(|opts:|SpeechSynthesis|class\s+\w+|function\s+\w+/i.test(text);
+        };
+
+        // Criar clone sem scripts e styles para extração limpa de texto
+        const cleanDoc = doc.cloneNode(true) as Document;
+        cleanDoc.querySelectorAll('script, style, noscript, svg').forEach((el) => el.remove());
+        const cleanBodyText = cleanDoc.body?.textContent || '';
+
         // 1. Título
         let extractedTitle = '';
-        const metaTitle = doc.querySelector('meta[name="title"]')?.getAttribute('content') ||
-                          doc.querySelector('meta[property="og:title"]')?.getAttribute('content');
-        const h1 = doc.querySelector('h1')?.textContent?.trim();
-        const docTitle = doc.querySelector('title')?.textContent?.trim();
-        const dataTitle = doc.querySelector('[data-title]')?.getAttribute('data-title');
+        const metaTitle = cleanDoc.querySelector('meta[name="title"]')?.getAttribute('content') ||
+                          cleanDoc.querySelector('meta[property="og:title"]')?.getAttribute('content');
+        const h1 = cleanDoc.querySelector('h1')?.textContent?.trim();
+        const docTitle = cleanDoc.querySelector('title')?.textContent?.trim();
+        const dataTitle = cleanDoc.querySelector('[data-title]')?.getAttribute('data-title');
 
-        if (dataTitle) extractedTitle = dataTitle;
-        else if (metaTitle) extractedTitle = metaTitle;
-        else if (h1) extractedTitle = h1;
-        else if (docTitle && !docTitle.toLowerCase().includes('document') && !docTitle.toLowerCase().includes('untitled')) {
+        if (dataTitle && !isCodeString(dataTitle)) extractedTitle = dataTitle;
+        else if (metaTitle && !isCodeString(metaTitle)) extractedTitle = metaTitle;
+        else if (h1 && !isCodeString(h1)) extractedTitle = h1;
+        else if (docTitle && !isCodeString(docTitle) && !docTitle.toLowerCase().includes('document') && !docTitle.toLowerCase().includes('untitled')) {
           extractedTitle = docTitle;
         } else {
           extractedTitle = file.name.replace(/\.html?$/i, '').replace(/[-_]/g, ' ');
@@ -327,17 +338,17 @@ export const HtmlStudio: React.FC<HtmlStudioProps> = ({
 
         // 2. Nível CEFR (A1, A2, B1, B2, C1, C2)
         let extractedLevel: CEFRLevelId | null = null;
-        const dataCefr = doc.querySelector('[data-cefr]')?.getAttribute('data-cefr') ||
-                         doc.querySelector('[data-level]')?.getAttribute('data-level');
-        const metaCefr = doc.querySelector('meta[name="cefr"]')?.getAttribute('content') ||
-                         doc.querySelector('meta[name="level"]')?.getAttribute('content');
+        const dataCefr = cleanDoc.querySelector('[data-cefr]')?.getAttribute('data-cefr') ||
+                         cleanDoc.querySelector('[data-level]')?.getAttribute('data-level');
+        const metaCefr = cleanDoc.querySelector('meta[name="cefr"]')?.getAttribute('content') ||
+                         cleanDoc.querySelector('meta[name="level"]')?.getAttribute('content');
         
         const levelCandidate = dataCefr || metaCefr;
         if (levelCandidate && /^(A1|A2|B1|B2|C1|C2)$/i.test(levelCandidate.trim())) {
           extractedLevel = levelCandidate.trim().toUpperCase() as CEFRLevelId;
         } else {
-          const fullText = (rawHtml + ' ' + (doc.body?.textContent || '')).slice(0, 3500);
-          const match = fullText.match(/(?:n[íi]vel|level|cefr)\s*[:•\-]?\s*(A1|A2|B1|B2|C1|C2)\b/i) ||
+          const sampleText = (extractedTitle + ' ' + cleanBodyText).slice(0, 3500);
+          const match = sampleText.match(/(?:n[íi]vel|level|cefr)\s*[:•\-]?\s*(A1|A2|B1|B2|C1|C2)\b/i) ||
                         extractedTitle.match(/\b(A1|A2|B1|B2|C1|C2)\b/i);
           if (match && match[1]) {
             extractedLevel = match[1].toUpperCase() as CEFRLevelId;
@@ -346,14 +357,14 @@ export const HtmlStudio: React.FC<HtmlStudioProps> = ({
 
         // 3. Categoria / Departamento
         let extractedDept: DepartmentType = 'CEFR';
-        const dataDept = doc.querySelector('[data-department]')?.getAttribute('data-department') ||
-                         doc.querySelector('[data-category]')?.getAttribute('data-category') ||
-                         doc.querySelector('meta[name="category"]')?.getAttribute('content') ||
-                         doc.querySelector('meta[name="department"]')?.getAttribute('content');
+        const dataDept = cleanDoc.querySelector('[data-department]')?.getAttribute('data-department') ||
+                         cleanDoc.querySelector('[data-category]')?.getAttribute('data-category') ||
+                         cleanDoc.querySelector('meta[name="category"]')?.getAttribute('content') ||
+                         cleanDoc.querySelector('meta[name="department"]')?.getAttribute('content');
         
-        const combinedContent = (rawHtml + ' ' + extractedTitle + ' ' + (doc.body?.textContent || '')).toLowerCase();
+        const combinedContent = (extractedTitle + ' ' + cleanBodyText.slice(0, 3000)).toLowerCase();
 
-        if (dataDept) {
+        if (dataDept && !isCodeString(dataDept)) {
           if (/business|corporat/i.test(dataDept)) extractedDept = 'Business English';
           else if (/kids|infantil|criança/i.test(dataDept)) extractedDept = 'English for Kids';
           else if (/grammar|gram[áa]tica/i.test(dataDept)) extractedDept = 'Grammar Lab';
@@ -370,33 +381,37 @@ export const HtmlStudio: React.FC<HtmlStudioProps> = ({
           }
         }
 
-        // 4. Foco Linguístico / Tópico
+        // 4. Foco Linguístico / Tópico (Nunca aceitar código JS/React)
         let extractedTopic = '';
-        const dataTopic = doc.querySelector('[data-topic]')?.getAttribute('data-topic') ||
-                          doc.querySelector('[data-focus]')?.getAttribute('data-focus') ||
-                          doc.querySelector('meta[name="focus"]')?.getAttribute('content') ||
-                          doc.querySelector('meta[name="topic"]')?.getAttribute('content');
+        const dataTopic = cleanDoc.querySelector('[data-topic]')?.getAttribute('data-topic') ||
+                          cleanDoc.querySelector('[data-focus]')?.getAttribute('data-focus') ||
+                          cleanDoc.querySelector('meta[name="focus"]')?.getAttribute('content') ||
+                          cleanDoc.querySelector('meta[name="topic"]')?.getAttribute('content');
         
-        if (dataTopic) {
-          extractedTopic = dataTopic;
+        if (dataTopic && !isCodeString(dataTopic)) {
+          extractedTopic = dataTopic.trim();
         } else {
-          const topicMatch = rawHtml.match(/(?:foco lingu[íi]stico|language focus|grammar focus|t[óo]pico|topic)\s*[:•\-]?\s*([^\n<]+)/i);
-          if (topicMatch && topicMatch[1]) {
+          // Buscar apenas no texto limpo, nunca no rawHtml que tem scripts
+          const topicMatch = cleanBodyText.match(/(?:foco lingu[íi]stico|language focus|grammar focus|t[óo]pico|topic)\s*[:•\-]?\s*([^\n\r]+)/i);
+          if (topicMatch && topicMatch[1] && !isCodeString(topicMatch[1]) && topicMatch[1].trim().length < 150) {
             extractedTopic = topicMatch[1].trim();
           } else {
-            const h2 = doc.querySelector('h2')?.textContent?.trim();
-            if (h2 && h2 !== extractedTitle) extractedTopic = h2;
-            else extractedTopic = extractedTitle;
+            const h2 = cleanDoc.querySelector('h2')?.textContent?.trim();
+            if (h2 && !isCodeString(h2) && h2 !== extractedTitle && h2.length < 150) {
+              extractedTopic = h2;
+            } else {
+              extractedTopic = 'Desenvolvimento de estruturas comunicativas e vocabulário contextual';
+            }
           }
         }
 
         // 5. Resumo / Descrição
         let extractedSummary = '';
-        const metaDesc = doc.querySelector('meta[name="description"]')?.getAttribute('content') ||
-                         doc.querySelector('meta[property="og:description"]')?.getAttribute('content');
-        const pLead = doc.querySelector('p.lead')?.textContent?.trim() || doc.querySelector('p')?.textContent?.trim();
-        if (metaDesc) extractedSummary = metaDesc;
-        else if (pLead && pLead.length > 20) extractedSummary = pLead;
+        const metaDesc = cleanDoc.querySelector('meta[name="description"]')?.getAttribute('content') ||
+                         cleanDoc.querySelector('meta[property="og:description"]')?.getAttribute('content');
+        const pLead = cleanDoc.querySelector('p.lead')?.textContent?.trim() || cleanDoc.querySelector('p')?.textContent?.trim();
+        if (metaDesc && !isCodeString(metaDesc)) extractedSummary = metaDesc;
+        else if (pLead && pLead.length > 20 && !isCodeString(pLead)) extractedSummary = pLead;
         else extractedSummary = `Aula interativa completa em HTML com materiais práticos e exercícios para professores de inglês.`;
 
         // 6. Links externos embutidos (Drive, Slides, YouTube)
@@ -425,7 +440,7 @@ export const HtmlStudio: React.FC<HtmlStudioProps> = ({
           slug: (extractedTitle || prev.title).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
           cefr_level: extractedLevel || prev.cefr_level,
           department: extractedDept,
-          language_focus: extractedTopic || prev.language_focus,
+          language_focus: extractedTopic || 'Dominar estruturas comunicativas em contextos reais do dia a dia.',
           summary: extractedSummary || prev.summary,
           custom_html: rawHtml,
           drive_url: extractedDrive || prev.drive_url,

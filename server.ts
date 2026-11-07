@@ -56,6 +56,22 @@ app.get('/api/config', (_req: Request, res: Response) => {
 // In-memory set for webhook idempotency
 const processedKiwifyOrders = new Set<string>();
 
+// In-memory leads storage for checkout lead tracking
+const serverCheckoutLeads: any[] = [];
+
+app.post('/api/leads/track', (req: Request, res: Response) => {
+  const lead = req.body;
+  if (lead && lead.id) {
+    serverCheckoutLeads.unshift(lead);
+    if (serverCheckoutLeads.length > 500) serverCheckoutLeads.pop();
+  }
+  res.json({ success: true, count: serverCheckoutLeads.length });
+});
+
+app.get('/api/leads', (_req: Request, res: Response) => {
+  res.json({ success: true, leads: serverCheckoutLeads });
+});
+
 // GET /api/kiwify/webhook - Health check for testing in browser
 app.get('/api/kiwify/webhook', (req: Request, res: Response) => {
   const token = req.query.token as string;

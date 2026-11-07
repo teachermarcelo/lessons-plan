@@ -28,7 +28,7 @@ import { Lesson } from '../types/fluent';
 import { FlashcardPlayer } from './FlashcardPlayer';
 import { QuizRunner } from './QuizRunner';
 import { generateLessonPDF, PDFExportType } from '../lib/pdfGenerator';
-import { KIWIFY_CHECKOUT_URL } from '../lib/supabase';
+import { KIWIFY_CHECKOUT_URL, trackCheckoutLead } from '../lib/supabase';
 
 interface LessonModalProps {
   lesson: Lesson;
@@ -224,7 +224,13 @@ export const LessonModal: React.FC<LessonModalProps> = ({
               href={KIWIFY_CHECKOUT_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-3 py-1 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-lg font-bold flex items-center space-x-1 shadow-sm"
+              onClick={() => {
+                trackCheckoutLead({
+                  source_page: `Aula ${lesson.cefr_level} • ${lesson.title}`,
+                  lesson_title: lesson.title,
+                });
+              }}
+              className="px-3 py-1 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-lg font-bold flex items-center space-x-1 shadow-sm transition-transform active:scale-95"
             >
               <Crown className="w-3 h-3 text-amber-100" />
               <span>Assinar na Kiwify (R$ 19,90)</span>

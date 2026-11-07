@@ -25,9 +25,14 @@ import {
   Check,
   Zap,
   Clock,
-  Laptop
+  Laptop,
+  Target,
+  MessageSquare,
+  Phone,
+  Smartphone,
+  MousePointerClick
 } from 'lucide-react';
-import { Lesson, UserProfile, EmailLog } from '../types/fluent';
+import { Lesson, UserProfile, EmailLog, CheckoutLead } from '../types/fluent';
 import { 
   DEFAULT_TEACHER_USER, 
   DEFAULT_TRIAL_USER, 
@@ -35,7 +40,11 @@ import {
   MASTER_ADMIN_EMAIL,
   DEFAULT_ADMIN_PASSWORD,
   getStoredAdminPassword,
-  setStoredAdminPassword
+  setStoredAdminPassword,
+  getStoredCheckoutLeads,
+  saveStoredCheckoutLeads,
+  updateLeadStatus,
+  trackCheckoutLead
 } from '../lib/supabase';
 import { HtmlStudio } from './HtmlStudio';
 
@@ -69,9 +78,14 @@ export const AdminCommandCenter: React.FC<AdminCommandCenterProps> = ({
   onSendBroadcastNotification,
   onClose,
 }) => {
-  const [activeTab, setActiveTab] = useState<'flow' | 'metrics' | 'studio' | 'content' | 'users' | 'emails' | 'kiwify' | 'security'>('flow');
+  const [activeTab, setActiveTab] = useState<'flow' | 'metrics' | 'leads' | 'studio' | 'content' | 'users' | 'emails' | 'kiwify' | 'security'>('flow');
   const [copiedWebhook, setCopiedWebhook] = useState(false);
   const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
+
+  // Rastreamento de Leads & Cliques no Checkout Kiwify
+  const [checkoutLeads, setCheckoutLeads] = useState<CheckoutLead[]>(() => getStoredCheckoutLeads());
+  const [leadFilter, setLeadFilter] = useState<'all' | 'abandoned' | 'completed_purchase' | 'recovered'>('all');
+  const [copiedLeadMsgId, setCopiedLeadMsgId] = useState<string | null>(null);
 
   // Lista de membros simulada
   const [members, setMembers] = useState<UserProfile[]>([
@@ -251,6 +265,45 @@ export const AdminCommandCenter: React.FC<AdminCommandCenterProps> = ({
         return m;
       })
     );
+  };
+
+  const handleUpdateLeadStatus = (leadId: string, status: CheckoutLead['status']) => {
+    const updated = updateLeadStatus(leadId, status);
+    setCheckoutLeads(updated);
+  };
+
+  const handleSimulateLeadClick = () => {
+    const randomLessons = [
+      'Strategic Negotiations: Bargaining (B2)',
+      'First Day in English: Greetings & To Be (A1)',
+      'Jungle Animals & Sounds (Kids)',
+      'Mastering Present Perfect (B1)',
+    ];
+    const pickedLesson = randomLessons[Math.floor(Math.random() * randomLessons.length)];
+    const simulatedNames = ['Gabriel Ferreira', 'Renata Souza', 'Bruno Mendes', 'Letícia Castro'];
+    const pickedName = simulatedNames[Math.floor(Math.random() * simulatedNames.length)];
+    const emailSanitized = pickedName.toLowerCase().replace(/\s+/g, '.') + '@gmail.com';
+
+    trackCheckoutLead({
+      source_page: `Aula: ${pickedLesson}`,
+      lesson_title: pickedLesson,
+      lead_name: `${pickedName} (Teacher)`,
+      lead_email: emailSanitized,
+      lead_phone: `+55 11 9${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}`,
+    });
+    setCheckoutLeads(getStoredCheckoutLeads());
+  };
+
+  const generateWhatsappRecoveryText = (lead: CheckoutLead) => {
+    const firstName = lead.lead_name.split(' ')[0] || 'Professor(a)';
+    return `Olá ${firstName}! Tudo bem? Vi que você acessou a plataforma FLUENT IMMERSION e se interessou pelos nossos planos de aula prontos (R$ 19,90/mês). Ficou alguma dúvida sobre o acesso ou sobre a emissão de PDFs? Posso te ajudar por aqui!`;
+  };
+
+  const handleCopyWhatsapp = (lead: CheckoutLead) => {
+    const text = generateWhatsappRecoveryText(lead);
+    navigator.clipboard.writeText(text);
+    setCopiedLeadMsgId(lead.id);
+    setTimeout(() => setCopiedLeadMsgId(null), 2500);
   };
 
   const handleRunSimulation = async () => {
@@ -609,6 +662,18 @@ export const AdminCommandCenter: React.FC<AdminCommandCenterProps> = ({
           >
             <TrendingUp className="w-4 h-4" />
             <span>Métricas Kiwify (R$ 19,90)</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('leads')}
+            className={`px-4 py-2.5 rounded-xl flex items-center space-x-2 transition-all flex-shrink-0 ${
+              activeTab === 'leads'
+                ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md shadow-orange-500/25'
+                : 'text-amber-400 hover:text-white hover:bg-slate-900 border border-amber-500/25'
+            }`}
+          >
+            <Target className="w-4 h-4 text-amber-300" />
+            <span>🎯 Rastro de Leads ({checkoutLeads.length})</span>
           </button>
 
           <button
@@ -996,6 +1061,278 @@ export const AdminCommandCenter: React.FC<AdminCommandCenterProps> = ({
                         </td>
                       </tr>
                     ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ABA: RASTRO DE LEADS & CHECKOUT (RECUPERAÇÃO DE VENDAS) */}
+        {activeTab === 'leads' && (
+          <div className="space-y-6">
+            {/* Top Banner Explicativo */}
+            <div className="p-5 rounded-3xl bg-gradient-to-r from-amber-950/70 via-slate-900 to-slate-900 border border-amber-500/30 flex items-center justify-between flex-wrap gap-4">
+              <div className="flex items-center space-x-3.5">
+                <div className="p-3.5 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/30 shrink-0">
+                  <Target className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <h3 className="font-extrabold text-base text-white">Rastro de Leads & Abandono de Checkout</h3>
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                      Recuperação de Vendas Ativa
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
+                    Toda vez que um professor clica em <strong>"Assinar na Kiwify (R$ 19,90)"</strong> na biblioteca, nas aulas ou no menu, o clique é registrado aqui como um lead quente. Você pode entrar em contato via WhatsApp ou E-mail para tirar dúvidas e fechar a venda!
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={handleSimulateLeadClick}
+                  className="px-4 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-bold flex items-center space-x-1.5 transition-all active:scale-95 cursor-pointer shadow-sm"
+                  title="Simular um visitante clicando no botão de checkout para testar o rastreio"
+                >
+                  <MousePointerClick className="w-3.5 h-3.5" />
+                  <span>Simular Novo Lead</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Cards de Métricas de Leads & Abandono */}
+            {(() => {
+              const totalClicks = checkoutLeads.length;
+              const abandoned = checkoutLeads.filter((l) => l.status === 'abandoned' || l.status === 'clicked_checkout').length;
+              const completed = checkoutLeads.filter((l) => l.status === 'completed_purchase').length;
+              const recovered = checkoutLeads.filter((l) => l.status === 'recovered').length;
+              const lostRevenue = (abandoned * 19.90).toFixed(2);
+
+              return (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-1">
+                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                      Cliques no Checkout (Leads)
+                    </span>
+                    <div className="flex items-baseline space-x-2">
+                      <span className="text-3xl font-black text-white">{totalClicks}</span>
+                      <span className="text-xs text-slate-400">intenções</span>
+                    </div>
+                    <span className="text-[10px] text-slate-500 block">Total de professores interessados</span>
+                  </div>
+
+                  <div className="p-5 rounded-2xl bg-slate-900 border border-amber-500/20 space-y-1">
+                    <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wider block">
+                      Carrinhos Abandonados
+                    </span>
+                    <div className="flex items-baseline space-x-2">
+                      <span className="text-3xl font-black text-amber-400">{abandoned}</span>
+                      <span className="text-xs text-slate-400">pendentes</span>
+                    </div>
+                    <span className="text-[10px] text-amber-400/80 block">Clicaram mas ainda não pagaram</span>
+                  </div>
+
+                  <div className="p-5 rounded-2xl bg-slate-900 border border-emerald-500/20 space-y-1">
+                    <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider block">
+                      Compras Convertidas
+                    </span>
+                    <div className="flex items-baseline space-x-2">
+                      <span className="text-3xl font-black text-emerald-400">{completed}</span>
+                      <span className="text-xs font-bold text-emerald-400">pagos</span>
+                    </div>
+                    <span className="text-[10px] text-emerald-400/80 block">Acesso liberado automaticamente</span>
+                  </div>
+
+                  <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-1">
+                    <span className="text-[11px] font-bold text-rose-400 uppercase tracking-wider block">
+                      Receita a Recuperar
+                    </span>
+                    <div className="flex items-baseline space-x-2">
+                      <span className="text-3xl font-black text-rose-400">R$ {lostRevenue}</span>
+                    </div>
+                    <span className="text-[10px] text-slate-500 block">Potencial extra em R$ 19,90/mês</span>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Tabela de Leads com Filtros e Ações */}
+            <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 space-y-4">
+              <div className="flex items-center justify-between flex-wrap gap-3 border-b border-slate-800 pb-4">
+                <div>
+                  <h4 className="font-extrabold text-sm text-white">Fila de Leads Interessados na Assinatura</h4>
+                  <p className="text-xs text-slate-400">
+                    Clique em "WhatsApp" ou "E-mail" para enviar uma mensagem cordial de suporte e recuperar a venda.
+                  </p>
+                </div>
+
+                {/* Filtros de Status */}
+                <div className="flex items-center space-x-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs">
+                  <button
+                    onClick={() => setLeadFilter('all')}
+                    className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                      leadFilter === 'all' ? 'bg-amber-500 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Todos ({checkoutLeads.length})
+                  </button>
+                  <button
+                    onClick={() => setLeadFilter('abandoned')}
+                    className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                      leadFilter === 'abandoned' ? 'bg-amber-500 text-white shadow-sm' : 'text-amber-400 hover:text-white'
+                    }`}
+                  >
+                    Abandonos ({checkoutLeads.filter((l) => l.status === 'abandoned' || l.status === 'clicked_checkout').length})
+                  </button>
+                  <button
+                    onClick={() => setLeadFilter('completed_purchase')}
+                    className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                      leadFilter === 'completed_purchase' ? 'bg-emerald-600 text-white shadow-sm' : 'text-emerald-400 hover:text-white'
+                    }`}
+                  >
+                    Convertidos ({checkoutLeads.filter((l) => l.status === 'completed_purchase').length})
+                  </button>
+                  <button
+                    onClick={() => setLeadFilter('recovered')}
+                    className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                      leadFilter === 'recovered' ? 'bg-blue-600 text-white shadow-sm' : 'text-blue-400 hover:text-white'
+                    }`}
+                  >
+                    Recuperados ({checkoutLeads.filter((l) => l.status === 'recovered').length})
+                  </button>
+                </div>
+              </div>
+
+              {/* Tabela de Leads */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs text-left">
+                  <thead>
+                    <tr className="border-b border-slate-800 text-slate-400 font-bold uppercase tracking-wider text-[10px]">
+                      <th className="py-3 px-3">Lead / Professor</th>
+                      <th className="py-3 px-3">Origem do Clique</th>
+                      <th className="py-3 px-3">Dispositivo</th>
+                      <th className="py-3 px-3">Data & Hora</th>
+                      <th className="py-3 px-3">Status</th>
+                      <th className="py-3 px-3 text-right">Ação de Recuperação</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60">
+                    {checkoutLeads
+                      .filter((lead) => {
+                        if (leadFilter === 'all') return true;
+                        if (leadFilter === 'abandoned') return lead.status === 'abandoned' || lead.status === 'clicked_checkout';
+                        return lead.status === leadFilter;
+                      })
+                      .map((lead) => {
+                        const hasPhone = Boolean(lead.lead_phone && lead.lead_phone.length > 5);
+                        const cleanPhone = (lead.lead_phone || '').replace(/\D/g, '');
+                        const whatsappUrl = hasPhone
+                          ? `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(generateWhatsappRecoveryText(lead))}`
+                          : null;
+
+                        return (
+                          <tr key={lead.id} className="hover:bg-slate-800/40 transition-colors">
+                            <td className="py-3 px-3">
+                              <div className="font-bold text-white flex items-center space-x-2">
+                                <span className="w-7 h-7 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center font-black text-xs shrink-0">
+                                  {lead.lead_name.charAt(0)}
+                                </span>
+                                <div>
+                                  <div className="text-white font-bold">{lead.lead_name}</div>
+                                  <div className="text-slate-400 text-[11px] font-mono">
+                                    {lead.lead_phone || lead.lead_email}
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+
+                            <td className="py-3 px-3">
+                              <span className="font-semibold text-slate-200 block">{lead.source_page}</span>
+                              {lead.lesson_title && (
+                                <span className="text-[10px] text-purple-400 block truncate max-w-xs">{lead.lesson_title}</span>
+                              )}
+                            </td>
+
+                            <td className="py-3 px-3">
+                              <div className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 text-[11px]">
+                                {lead.device_type === 'Mobile' ? (
+                                  <Smartphone className="w-3 h-3 text-amber-400" />
+                                ) : (
+                                  <Laptop className="w-3 h-3 text-blue-400" />
+                                )}
+                                <span>{lead.device_type}</span>
+                              </div>
+                            </td>
+
+                            <td className="py-3 px-3 text-slate-400 font-mono text-[11px]">
+                              {new Date(lead.created_at).toLocaleString('pt-BR', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </td>
+
+                            <td className="py-3 px-3">
+                              <span
+                                className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase ${
+                                  lead.status === 'completed_purchase'
+                                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                                    : lead.status === 'recovered'
+                                    ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                                    : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                                }`}
+                              >
+                                {lead.status === 'completed_purchase'
+                                  ? '● Comprou'
+                                  : lead.status === 'recovered'
+                                  ? '● Recuperado'
+                                  : '○ Abandonou Checkout'}
+                              </span>
+                            </td>
+
+                            <td className="py-3 px-3 text-right">
+                              <div className="flex items-center justify-end space-x-2">
+                                {/* Botão WhatsApp */}
+                                {whatsappUrl ? (
+                                  <a
+                                    href={whatsappUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="px-2.5 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 font-bold text-xs flex items-center space-x-1 transition-all"
+                                    title="Abrir conversa no WhatsApp com texto pronto de suporte"
+                                  >
+                                    <MessageSquare className="w-3.5 h-3.5 text-emerald-400" />
+                                    <span>WhatsApp</span>
+                                  </a>
+                                ) : (
+                                  <button
+                                    onClick={() => handleCopyWhatsapp(lead)}
+                                    className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-750 text-slate-300 text-xs font-semibold flex items-center space-x-1 transition-all"
+                                    title="Copiar mensagem pronta de recuperação para área de transferência"
+                                  >
+                                    <Copy className="w-3.5 h-3.5 text-amber-400" />
+                                    <span>{copiedLeadMsgId === lead.id ? 'Copiado!' : 'Copiar Texto'}</span>
+                                  </button>
+                                )}
+
+                                {/* Alternar Status */}
+                                <select
+                                  value={lead.status}
+                                  onChange={(e) => handleUpdateLeadStatus(lead.id, e.target.value as any)}
+                                  className="bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-[11px] text-slate-300 focus:outline-none"
+                                >
+                                  <option value="abandoned">Abandonou</option>
+                                  <option value="recovered">Recuperado</option>
+                                  <option value="completed_purchase">Comprou</option>
+                                </select>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
                   </tbody>
                 </table>
               </div>

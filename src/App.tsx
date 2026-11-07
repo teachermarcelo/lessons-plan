@@ -7,7 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar';
 import { LandingPage } from './components/LandingPage';
 import { DashboardView } from './components/DashboardView';
-import { LessonModal } from './components/LessonModal';
+import { TeacherLessonViewerPage } from './components/TeacherLessonViewerPage';
 import { HtmlStudio } from './components/HtmlStudio';
 import { AdminCommandCenter } from './components/AdminCommandCenter';
 import { SubscriptionModal } from './components/SubscriptionModal';
@@ -213,10 +213,11 @@ export default function App() {
   };
 
   const handleSelectNotification = (item: NotificationItem) => {
-    // If the notification corresponds to a known lesson, open that lesson modal
+    // If the notification corresponds to a known lesson, open that lesson full page
     const matchedLesson = lessons.find((l) => item.message.includes(l.title) || item.title.includes(l.title));
     if (matchedLesson) {
       setSelectedLesson(matchedLesson);
+      setCurrentView('lesson-page');
       setIsNotificationsOpen(false);
     }
   };
@@ -233,6 +234,7 @@ export default function App() {
           if (view === 'pricing') {
             setIsSubscribeOpen(true);
           } else {
+            setSelectedLesson(null);
             setCurrentView(view);
           }
         }}
@@ -251,7 +253,10 @@ export default function App() {
         {currentView === 'landing' && (
           <LandingPage
             onSubscribe={() => setIsSubscribeOpen(true)}
-            onSelectLesson={(lesson) => setSelectedLesson(lesson)}
+            onSelectLesson={(lesson) => {
+              setSelectedLesson(lesson);
+              setCurrentView('lesson-page');
+            }}
             sampleLessons={lessons}
             onOpenStudio={() => handleOpenStudio()}
             onOpenAdmin={() => setCurrentView('admin')}
@@ -266,12 +271,33 @@ export default function App() {
             favorites={favorites}
             collections={collections}
             onToggleFavorite={handleToggleFavorite}
-            onOpenLesson={(lesson) => setSelectedLesson(lesson)}
+            onOpenLesson={(lesson) => {
+              setSelectedLesson(lesson);
+              setCurrentView('lesson-page');
+            }}
             onQuickDownloadPDF={handleQuickDownloadPDF}
             onOpenStudio={(lesson) => handleOpenStudio(lesson)}
             onOpenSubscribe={() => setIsSubscribeOpen(true)}
             onOpenAdmin={() => setCurrentView('admin')}
             onOpenLegal={(type) => setLegalModalType(type)}
+          />
+        )}
+
+        {currentView === 'lesson-page' && selectedLesson && (
+          <TeacherLessonViewerPage
+            lesson={selectedLesson}
+            currentUser={currentUser}
+            isFavorite={favorites.includes(selectedLesson.id)}
+            onToggleFavorite={handleToggleFavorite}
+            onBackToLibrary={() => {
+              setSelectedLesson(null);
+              setCurrentView(currentUser ? 'dashboard' : 'landing');
+            }}
+            onEditInStudio={(lesson) => {
+              handleOpenStudio(lesson);
+            }}
+            onOpenSubscribe={() => setIsSubscribeOpen(true)}
+            isSubscribed={isSubscribed}
           />
         )}
 
@@ -301,26 +327,6 @@ export default function App() {
           />
         )}
       </div>
-
-      {/* MODALS */}
-      {selectedLesson && (
-        <LessonModal
-          lesson={selectedLesson}
-          isFavorite={favorites.includes(selectedLesson.id)}
-          onClose={() => setSelectedLesson(null)}
-          onToggleFavorite={handleToggleFavorite}
-          onEditInStudio={(lesson) => {
-            setSelectedLesson(null);
-            handleOpenStudio(lesson);
-          }}
-          onDuplicateLesson={handleDuplicateLesson}
-          isSubscribed={isSubscribed}
-          onOpenSubscribe={() => {
-            setSelectedLesson(null);
-            setIsSubscribeOpen(true);
-          }}
-        />
-      )}
 
       {isSubscribeOpen && (
         <SubscriptionModal

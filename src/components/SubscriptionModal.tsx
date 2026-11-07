@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Crown, CheckCircle2, ShieldCheck, X, ArrowRight, RefreshCw, CreditCard, ExternalLink, Sparkles } from 'lucide-react';
 import { UserProfile } from '../types/fluent';
-import { KIWIFY_CHECKOUT_URL } from '../lib/supabase';
+import { KIWIFY_CHECKOUT_URL, trackCheckoutLead } from '../lib/supabase';
 
 interface SubscriptionModalProps {
   currentUser: UserProfile | null;
@@ -15,6 +15,8 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
   onActivateSuccess,
 }) => {
   const [payerEmail, setPayerEmail] = useState(currentUser?.email || '');
+  const [leadName, setLeadName] = useState(currentUser?.full_name || '');
+  const [leadContact, setLeadContact] = useState(currentUser?.email || '');
 
   const handleSimulateSandboxConfirmation = () => {
     const fakeSubId = `sub-kiwify-${Math.floor(100000 + Math.random() * 900000)}`;
@@ -75,12 +77,44 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
           </div>
         </div>
 
-        {/* Botão Oficial de Compra Kiwify */}
+        {/* Captura de Lead Opcional para Suporte e Recuperação */}
+        <div className="bg-slate-950/60 p-3.5 rounded-2xl border border-slate-800 text-left space-y-2">
+          <label className="text-[11px] font-bold text-slate-300 block">
+            Quer receber suporte imediato ou comprovante no WhatsApp? (Opcional):
+          </label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <input
+              type="text"
+              placeholder="Seu nome (ex: Lucas)"
+              value={leadName}
+              onChange={(e) => setLeadName(e.target.value)}
+              className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
+            />
+            <input
+              type="text"
+              placeholder="WhatsApp ou E-mail (ex: 11 99999-9999)"
+              value={leadContact}
+              onChange={(e) => setLeadContact(e.target.value)}
+              className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
+            />
+          </div>
+        </div>
+
+        {/* Botão Oficial de Compra Kiwify com Rastreamento de Lead */}
         <div className="space-y-3">
           <a
             href={KIWIFY_CHECKOUT_URL}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={() => {
+              trackCheckoutLead({
+                source_page: 'Modal de Assinatura (Quero Assinar)',
+                lesson_title: 'Assinatura Mensal R$ 19,90',
+                lead_name: leadName.trim() || undefined,
+                lead_phone: leadContact.includes('@') ? undefined : leadContact.trim() || undefined,
+                lead_email: leadContact.includes('@') ? leadContact.trim() : undefined,
+              });
+            }}
             className="w-full py-4 rounded-2xl bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-sm shadow-xl shadow-orange-500/35 transition-all transform active:scale-95 flex items-center justify-center space-x-2"
           >
             <Crown className="w-4 h-4 text-amber-200" />
